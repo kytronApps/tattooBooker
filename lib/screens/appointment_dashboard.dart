@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/calendar_sync_service.dart';
+
 
 import '../../core/app_export.dart';
 import '../widgets/appointment_card_widget.dart';
@@ -11,6 +13,8 @@ import '../widgets/date_section_widget.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/sync_indicator_widget.dart';
+import '../screens/calendar_management_screen.dart';
+
 
 class AppointmentDashboard extends StatefulWidget {
   const AppointmentDashboard({Key? key}) : super(key: key);
@@ -18,6 +22,8 @@ class AppointmentDashboard extends StatefulWidget {
   @override
   State<AppointmentDashboard> createState() => _AppointmentDashboardState();
 }
+
+
 
 class _AppointmentDashboardState extends State<AppointmentDashboard>
     with TickerProviderStateMixin {
@@ -29,13 +35,14 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   String _searchQuery = '';
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final CalendarSyncService _calendarService = CalendarSyncService();
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _fetchAppointments();
     _simulateNetworkStatus();
   }
@@ -252,6 +259,63 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     );
   }
 
+  Future<void> _syncAppointmentsToCalendar() async {
+    setState(() => _isSyncing = true);
+    try {
+      for (var appointment in _appointments) {
+        final date = DateTime.tryParse((appointment['date'] ?? '').toString());
+        if (date == null) continue;
+        final timeSlot = (appointment['timeSlot'] ?? '').toString();
+
+        final times = timeSlot.split('-').map((e) => e.trim()).toList();
+        if (times.length == 2) {
+          final startParts = times[0].split(':');
+          final endParts = times[1].split(':');
+
+          final start = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            int.tryParse(startParts[0]) ?? 0,
+            int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0,
+          );
+          final end = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            int.tryParse(endParts[0]) ?? 0,
+            int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0,
+          );
+
+          await _calendarService.addAppointmentToCalendar(
+            title: '${appointment['clientName']} - ${appointment['serviceType']}',
+            description: 'Teléfono: ${appointment['phone']}',
+            startTime: start,
+            endTime: end,
+          );
+        }
+      }
+
+      Fluttertoast.showToast(
+        msg: "Citas sincronizadas con el calendario 📅",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: AppTheme.successColor,
+        textColor: Colors.white,
+      );
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error al sincronizar calendario: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: AppTheme.lightTheme.colorScheme.error,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
   void _createNewAppointment() {
     Fluttertoast.showToast(
       msg: "Abriendo formulario de nueva cita",
@@ -306,7 +370,6 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
               tabs: const [
                 Tab(text: 'Dashboard'),
                 Tab(text: 'Calendario'),
-                Tab(text: 'Clientes'),
                 Tab(text: 'Links'),
                 Tab(text: 'Ajustes'),
               ],
@@ -397,48 +460,60 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                     ),
                   ],
                 ),
-
-                // Tabs restantes (Calendario, Clientes, Links, Ajustes)
-                for (final icon in [
-                  'calendar_month',
-                  'people',
-                  'link',
-                  'settings'
-                ])
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CustomIconWidget(
-                          iconName: icon,
-                          size: 20.w,
-                          color: AppTheme
-                              .lightTheme.colorScheme.onSurfaceVariant,
+                // Calendario
+                const CalendarManagementScreen(),
+                // Links
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomIconWidget(
+                        iconName: 'link',
+                        size: 20.w,
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        'Gestión de Links',
+                        style: AppTheme.lightTheme.textTheme.headlineSmall,
+                      ),
+                      SizedBox(height: 1.h),
+                      Text(
+                        'Próximamente disponible',
+                        style: AppTheme.lightTheme.textTheme.bodyMedium
+                            ?.copyWith(
+                          color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                         ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          icon == 'link'
-                              ? 'Gestión de Links'
-                              : icon == 'people'
-                                  ? 'Gestión de Clientes'
-                                  : icon == 'settings'
-                                      ? 'Configuración'
-                                      : 'Vista de Calendario',
-                          style:
-                              AppTheme.lightTheme.textTheme.headlineSmall,
-                        ),
-                        SizedBox(height: 1.h),
-                        Text(
-                          'Próximamente disponible',
-                          style: AppTheme.lightTheme.textTheme.bodyMedium
-                              ?.copyWith(
-                            color: AppTheme
-                                .lightTheme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
+                // Ajustes
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomIconWidget(
+                        iconName: 'settings',
+                        size: 20.w,
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        'Configuración',
+                        style: AppTheme.lightTheme.textTheme.headlineSmall,
+                      ),
+                      SizedBox(height: 1.h),
+                      Text(
+                        'Próximamente disponible',
+                        style: AppTheme.lightTheme.textTheme.bodyMedium
+                            ?.copyWith(
+                          color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
