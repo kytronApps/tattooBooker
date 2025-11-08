@@ -73,39 +73,41 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   Future<void> _handleLogin() async {
     if (!_isEmailValid || !_isPasswordValid) return;
     setState(() => _isLoading = true);
-
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-
-    final user = await _authService.login(email, password);
-
-    if (user != null) {
-      // ✅ Autenticación correcta
-      HapticFeedback.lightImpact();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/appointment-dashboard');
+    try {
+      final user = await _authService.login(email, password);
+      if (user != null) {
+        HapticFeedback.lightImpact();
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/appointment-dashboard');
+        }
+      } else {
+        _showError('Credenciales inválidas. Verifique su email y contraseña.');
       }
-    } else {
-      // ❌ Credenciales incorrectas
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Credenciales inválidas. Verifique su email y contraseña.',
-              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: AppTheme.lightTheme.colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
+    } catch (e) {
+      _showError('Error al iniciar sesión. Inténtelo nuevamente.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppTheme.lightTheme.colorScheme.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
   }
 
   void _handleForgotPassword() {

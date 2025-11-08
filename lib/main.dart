@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sizer/sizer.dart';
 import 'firebase_options.dart';
 import 'screens/admin_login_screen.dart';
 import 'screens/appointment_dashboard.dart';
@@ -13,13 +15,14 @@ void main() async {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     } else {
-      Firebase.app(); // Usa la instancia existente
+      Firebase.app();
     }
   } catch (e) {
-    debugPrint('⚠️ Firebase ya estaba inicializado: $e');
+    debugPrint('⚠️ Firebase ya inicializado: $e');
   }
 
-  runApp(const TattooBookerApp(sessionActive: false));
+  final user = FirebaseAuth.instance.currentUser;
+  runApp(TattooBookerApp(sessionActive: user != null));
 }
 
 class TattooBookerApp extends StatelessWidget {
@@ -28,21 +31,20 @@ class TattooBookerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'TattooBooker',
-      theme: ThemeData.dark(),
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            'Hola mundo 👋',
-            style: TextStyle(fontSize: 24, color: Colors.white),
-          ),
-        ),
-      ),
-      routes: {
-        '/appointment-dashboard': (_) => const AppointmentDashboard(),
-        '/login': (_) => const AdminLoginScreen(),
+    return Sizer(
+      builder: (context, orientation, deviceType) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'TattooBooker',
+          theme: ThemeData.dark(),
+          home: sessionActive
+              ? const AppointmentDashboard()
+              : const AdminLoginScreen(),
+          routes: {
+            '/appointment-dashboard': (_) => const AppointmentDashboard(),
+            '/login': (_) => const AdminLoginScreen(),
+          },
+        );
       },
     );
   }
