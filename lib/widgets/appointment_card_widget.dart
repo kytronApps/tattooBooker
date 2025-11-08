@@ -100,7 +100,7 @@ class AppointmentCardWidget extends StatelessWidget {
         ),
         child: Card(
           color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[850]
+              ? const Color(0xFF2C2C2E) // gris más claro y contrastado en modo oscuro
               : AppTheme.lightTheme.colorScheme.surface,
           elevation: AppTheme.elevationLow,
           shape: RoundedRectangleBorder(
@@ -129,6 +129,9 @@ class AppointmentCardWidget extends StatelessWidget {
                                 style: AppTheme.lightTheme.textTheme.titleMedium
                                     ?.copyWith(
                                   fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.lightTheme.colorScheme.onSurface,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -171,7 +174,11 @@ class AppointmentCardWidget extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 appointment['serviceType'] as String,
-                                style: AppTheme.lightTheme.textTheme.bodyMedium,
+                                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white70
+                                      : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -192,6 +199,9 @@ class AppointmentCardWidget extends StatelessWidget {
                               style: AppTheme.lightTheme.textTheme.bodyMedium
                                   ?.copyWith(
                                 fontWeight: FontWeight.w500,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white70
+                                    : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                             SizedBox(width: 4.w),
@@ -207,7 +217,9 @@ class AppointmentCardWidget extends StatelessWidget {
                               style: AppTheme.lightTheme.textTheme.bodyMedium
                                   ?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.lightTheme.colorScheme.primary,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white70
+                                    : AppTheme.lightTheme.colorScheme.primary,
                               ),
                             ),
                           ],
