@@ -280,9 +280,21 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       body: Column(
         children: [
-          DashboardHeaderWidget(
+         DashboardHeaderWidget(
             studioName: "TattooBooker Studio",
-            currentDate: "Miércoles, 6 de Noviembre 2025",
+            currentDate: (() {
+              final now = DateTime.now();
+              const days = [
+                'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+              ];
+              const months = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+              ];
+              final dayName = days[(now.weekday - 1) % 7];
+              final monthName = months[(now.month - 1) % 12];
+              return '$dayName, ${now.day} de $monthName ${now.year}';
+            })(),
             notificationCount: 3,
             onNotificationTap: _showNotifications,
           ),
@@ -433,19 +445,13 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
         ],
       ),
       floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: _createNewAppointment,
-              icon: CustomIconWidget(
-                iconName: 'add',
-                color: AppTheme.lightTheme.colorScheme.onSecondary,
-                size: 6.w,
-              ),
-              label: Text(
-                'Nueva Cita',
-                style: AppTheme.lightTheme.textTheme.labelLarge?.copyWith(
-                  color: AppTheme.lightTheme.colorScheme.onSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+              backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+              child: Icon(
+                Icons.add,
+                color: AppTheme.lightTheme.colorScheme.onPrimary,
+                size: 8.w,
               ),
             )
           : null,
