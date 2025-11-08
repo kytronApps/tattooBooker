@@ -122,16 +122,7 @@ class AppointmentCardWidget extends StatelessWidget {
                         width: 1,
                       ),
                     ),
-                    child: ClipOval(
-                      child: CustomImageWidget(
-                        imageUrl: appointment['clientAvatar'] as String,
-                        width: 12.w,
-                        height: 12.w,
-                        fit: BoxFit.cover,
-                        semanticLabel:
-                            appointment['clientAvatarSemanticLabel'] as String,
-                      ),
-                    ),
+                    
                   ),
                   SizedBox(width: 3.w),
                   // Appointment details

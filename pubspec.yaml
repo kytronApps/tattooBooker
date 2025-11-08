@@ -39,7 +39,7 @@ dependencies:
 
   # Firebase dependencies
   firebase_core: any
-  cloud_firestore: any
+  cloud_firestore: ^5.4.4
 
 # CRITICAL: Required for every Flutter project - DO NOT REMOVE
 # Core UI and responsive design - keep these packages

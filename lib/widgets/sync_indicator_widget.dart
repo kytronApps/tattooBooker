@@ -82,40 +82,27 @@ class _SyncIndicatorWidgetState extends State<SyncIndicatorWidget>
   }
 
   String _getLastSyncText() {
-    if (widget.lastSyncTime == null) return 'Nunca sincronizado';
-
+    final lastSync = widget.lastSyncTime;
+    if (lastSync == null) return 'Nunca sincronizado';
     final now = DateTime.now();
-    final difference = now.difference(widget.lastSyncTime!);
+    final difference = now.difference(lastSync);
 
-    if (difference.inMinutes < 1) {
-      return 'Sincronizado ahora';
-    } else if (difference.inMinutes < 60) {
-      return 'Hace ${difference.inMinutes} min';
-    } else if (difference.inHours < 24) {
-      return 'Hace ${difference.inHours} h';
-    } else {
-      return 'Hace ${difference.inDays} días';
-    }
+    if (difference.inMinutes < 1) return 'Sincronizado ahora';
+    if (difference.inMinutes < 60) return 'Hace ${difference.inMinutes} min';
+    if (difference.inHours < 24) return 'Hace ${difference.inHours} h';
+    return 'Hace ${difference.inDays} días';
   }
 
   Color _getStatusColor() {
-    if (!widget.isOnline) {
-      return AppTheme.lightTheme.colorScheme.error;
-    } else if (widget.isSyncing) {
-      return AppTheme.infoColor;
-    } else {
-      return AppTheme.successColor;
-    }
+    if (widget.isOnline == false) return AppTheme.lightTheme.colorScheme.error;
+    if (widget.isSyncing == true) return AppTheme.infoColor;
+    return AppTheme.successColor;
   }
 
   String _getStatusText() {
-    if (!widget.isOnline) {
-      return 'Sin conexión';
-    } else if (widget.isSyncing) {
-      return 'Sincronizando...';
-    } else {
-      return 'Conectado';
-    }
+    if (widget.isOnline == false) return 'Sin conexión';
+    if (widget.isSyncing == true) return 'Sincronizando...';
+    return 'Conectado';
   }
 
   @override
@@ -180,7 +167,7 @@ class _SyncIndicatorWidgetState extends State<SyncIndicatorWidget>
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (widget.lastSyncTime != null)
+              if (widget.lastSyncTime != null && widget.lastSyncTime is DateTime)
                 Text(
                   _getLastSyncText(),
                   style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(

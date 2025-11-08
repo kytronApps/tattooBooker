@@ -38,13 +38,14 @@ class EmptyStateWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
               ),
               child: illustrationUrl != null
-                  ? CustomImageWidget(
-                      imageUrl: illustrationUrl!,
-                      width: 60.w,
-                      height: 30.h,
-                      fit: BoxFit.contain,
-                      semanticLabel:
-                          "Illustration showing empty calendar with appointment booking concept",
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+                      child: Image.network(
+                        illustrationUrl!,
+                        width: 60.w,
+                        height: 30.h,
+                        fit: BoxFit.contain,
+                      ),
                     )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
