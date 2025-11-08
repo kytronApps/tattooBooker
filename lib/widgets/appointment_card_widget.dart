@@ -99,6 +99,9 @@ class AppointmentCardWidget extends StatelessWidget {
           ],
         ),
         child: Card(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[850]
+              : AppTheme.lightTheme.colorScheme.surface,
           elevation: AppTheme.elevationLow,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
@@ -111,19 +114,7 @@ class AppointmentCardWidget extends StatelessWidget {
               padding: EdgeInsets.all(4.w),
               child: Row(
                 children: [
-                  // Avatar
-                  Container(
-                    width: 12.w,
-                    height: 12.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppTheme.lightTheme.colorScheme.outline,
-                        width: 1,
-                      ),
-                    ),
-                    
-                  ),
+                 
                   SizedBox(width: 3.w),
                   // Appointment details
                   Expanded(
