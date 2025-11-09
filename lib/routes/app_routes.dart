@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/admin_login_screen.dart';
 import '../screens/settings_management_screen.dart';
 import '../screens/appointment_dashboard.dart';
+import '../screens/appointment_form_screen.dart'; 
 import '../layout/main_layout.dart';
 import '../screens/calendar_management_screen.dart';
 
@@ -20,7 +21,6 @@ class AppRoutes {
     settingsManagement: (context) => const SettingsManagementScreen(),
     mainLayout: (context) => const MainLayout(),
     calendarManagement: (context) => const CalendarManagementScreen(),
-    // TODO: Implementar la pantalla de nueva cita
-    // newAppointment: (context) => const NewAppointmentScreen(),
+    newAppointment: (context) => const AppointmentFormScreen(), // ✅ aquí usamos tu formulario
   };
 }

@@ -5,11 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sizer/sizer.dart';
 
 import 'firebase_options.dart';
-import 'screens/admin_login_screen.dart';
- import 'layout/main_layout.dart';
-import 'screens/appointment_dashboard.dart';
-import 'screens/settings_management_screen.dart';
-import 'core/app_export.dart'; // si tu AppTheme está ahí
+import 'core/app_export.dart';
+import 'routes/app_routes.dart'; // ✅ importa las rutas centralizadas
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,13 +38,8 @@ class TattooBookerApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'TattooBooker',
-
-          // ✅ Tema claro de tu AppTheme
           theme: AppTheme.lightTheme,
-
-          // ✅ Soporte completo para localización (soluciona el DatePicker)
-          // No usar `const` aquí porque los delegates no son constantes en tiempo de compilación
-          localizationsDelegates: [
+          localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
@@ -57,18 +49,13 @@ class TattooBookerApp extends StatelessWidget {
             Locale('en', 'US'),
           ],
 
-          // ✅ Define la pantalla inicial según sesión activa
-           home: sessionActive
-               ? const MainLayout()
-               : const AdminLoginScreen(),
+          // ✅ Pantalla inicial según sesión
+          initialRoute: sessionActive
+              ? AppRoutes.mainLayout
+              : AppRoutes.adminLogin,
 
-          // ✅ Rutas limpias y consistentes
-          routes: {
-            '/appointment-dashboard': (_) => const AppointmentDashboard(),
-            '/admin-login-screen': (_) => const AdminLoginScreen(),
-            '/settings-management': (_) => const SettingsManagementScreen(),
-             '/main': (_) => const MainLayout(),
-          },
+          // ✅ Usa las rutas centralizadas
+          routes: AppRoutes.routes,
         );
       },
     );

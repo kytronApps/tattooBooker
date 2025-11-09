@@ -291,18 +291,27 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
           ),
         ],
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton(
-              onPressed: () =>
-                  Fluttertoast.showToast(msg: "Crear nueva cita 🖋️"),
-              backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-              child: Icon(
-                Icons.add,
-                color: AppTheme.lightTheme.colorScheme.onPrimary,
-                size: 8.w,
-              ),
-            )
-          : null,
+     floatingActionButton: _tabController.index == 0
+    ? FloatingActionButton(
+        onPressed: () async {
+          final created =
+              await Navigator.pushNamed(context, AppRoutes.newAppointment);
+          if (created == true) {
+            Fluttertoast.showToast(
+              msg: "Cita añadida correctamente 🕒",
+              backgroundColor: AppTheme.successColor,
+              textColor: Colors.white,
+            );
+          }
+        },
+        backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+        child: Icon(
+          Icons.add,
+          color: AppTheme.lightTheme.colorScheme.onPrimary,
+          size: 8.w,
+        ),
+      )
+    : null,
     );
   }
 }
