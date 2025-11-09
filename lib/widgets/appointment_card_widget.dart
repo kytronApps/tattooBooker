@@ -2,27 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/appointment_actions_service.dart';
+import '../../widgets/appointment_edit_modal.dart';
 
 class AppointmentCardWidget extends StatelessWidget {
   final Map<String, dynamic> appointment;
-  final VoidCallback? onTap;
-  final VoidCallback? onEdit;
   final VoidCallback? onCancel;
   final VoidCallback? onDelete;
-  final VoidCallback? onSendReminder;
 
   const AppointmentCardWidget({
     Key? key,
     required this.appointment,
-    this.onTap,
-    this.onEdit,
     this.onCancel,
     this.onDelete,
-    this.onSendReminder,
   }) : super(key: key);
 
   Color _getStatusColor() {
-    final status = (appointment['status'] as String).toLowerCase();
+    final status = (appointment['status'] ?? '').toLowerCase();
     switch (status) {
       case 'confirmado':
         return AppTheme.successColor;
@@ -31,12 +28,12 @@ class AppointmentCardWidget extends StatelessWidget {
       case 'cancelado':
         return AppTheme.lightTheme.colorScheme.error;
       default:
-        return AppTheme.lightTheme.colorScheme.onSurfaceVariant;
+        return AppTheme.lightTheme.colorScheme.outline;
     }
   }
 
   String _getStatusText() {
-    final status = (appointment['status'] as String).toLowerCase();
+    final status = (appointment['status'] ?? '').toLowerCase();
     switch (status) {
       case 'confirmado':
         return 'Confirmado';
@@ -52,6 +49,7 @@ class AppointmentCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.lightTheme;
+    final actionsService = AppointmentActionsService();
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
@@ -65,33 +63,21 @@ class AppointmentCardWidget extends StatelessWidget {
               color: theme.colorScheme.primary,
               icon: Icons.edit,
               label: 'Editar',
-              onTap: onEdit,
+              onTap: () => _openEditModal(context, actionsService),
             ),
             _actionButton(
               context,
               color: AppTheme.warningColor,
               icon: Icons.cancel,
               label: 'Cancelar',
-              onTap: onCancel,
+              onTap: onCancel ?? () {},
             ),
             _actionButton(
               context,
-              color: AppTheme.infoColor,
-              icon: Icons.notifications,
-              label: 'Recordar',
-              onTap: onSendReminder,
-            ),
-          ],
-        ),
-        endActionPane: ActionPane(
-          motion: const ScrollMotion(),
-          children: [
-            _actionButton(
-              context,
-              color: theme.colorScheme.error,
+              color: const Color(0xFFD32F2F),
               icon: Icons.delete,
               label: 'Eliminar',
-              onTap: () => _showDeleteConfirmation(context),
+              onTap: onDelete ?? () {},
             ),
           ],
         ),
@@ -105,8 +91,7 @@ class AppointmentCardWidget extends StatelessWidget {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
-            onTap: onTap,
-            onLongPress: () => _showContextMenu(context),
+            onLongPress: () => _showContextMenu(context, actionsService),
             child: Padding(
               padding: EdgeInsets.all(4.w),
               child: _buildCardContent(context, theme),
@@ -117,13 +102,15 @@ class AppointmentCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(BuildContext context,
-      {required Color color,
-      required IconData icon,
-      required String label,
-      VoidCallback? onTap}) {
+  Widget _actionButton(
+    BuildContext context, {
+    required Color color,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return SlidableAction(
-      onPressed: (_) => onTap?.call(),
+      onPressed: (_) => onTap(),
       backgroundColor: color,
       foregroundColor: Colors.white,
       icon: icon,
@@ -138,12 +125,11 @@ class AppointmentCardWidget extends StatelessWidget {
 
     return Row(
       children: [
-        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cliente + Estado
+              // 🔹 Nombre + estado
               Row(
                 children: [
                   Expanded(
@@ -177,7 +163,7 @@ class AppointmentCardWidget extends StatelessWidget {
               ),
               SizedBox(height: 1.h),
 
-              // Tipo de servicio
+              // 🔹 Tipo
               Row(
                 children: [
                   CustomIconWidget(
@@ -199,7 +185,7 @@ class AppointmentCardWidget extends StatelessWidget {
               ),
               SizedBox(height: 0.5.h),
 
-              // Hora y precio
+              // 🔹 Hora y precio
               Row(
                 children: [
                   CustomIconWidget(
@@ -238,46 +224,45 @@ class AppointmentCardWidget extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
+  // 🔹 Modal de edición
+  void _openEditModal(BuildContext context, AppointmentActionsService actionsService) {
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Confirmar eliminación'),
-          content: Text(
-            '¿Deseas eliminar la cita con ${appointment['clientName']}?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.lightTheme.colorScheme.error,
-              ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onDelete?.call();
-              },
-              child: const Text('Eliminar'),
-            ),
-          ],
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.borderRadiusLarge)),
+      ),
+      builder: (ctx) {
+        return AppointmentEditModal(
+          appointment: appointment,
+          onSave: (service, time, price) {
+            actionsService.editAppointment(
+              ctx,
+              appointment['id'],
+              serviceType: service,
+              timeSlot: time,
+              price: price,
+            );
+          },
         );
       },
     );
   }
 
-  void _showContextMenu(BuildContext context) {
+
+
+  // 🔹 Menú contextual (mantiene compatibilidad con long press)
+  void _showContextMenu(BuildContext context, AppointmentActionsService service) {
     showModalBottomSheet(
       context: context,
-      useSafeArea: true,
       backgroundColor: AppTheme.lightTheme.colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.borderRadiusLarge)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.borderRadiusLarge),
+        ),
       ),
-      builder: (BuildContext sheetContext) {
+      builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.all(4.w),
           child: Wrap(
@@ -294,27 +279,11 @@ class AppointmentCardWidget extends StatelessWidget {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: const Text('Ver detalles'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  onTap?.call();
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.edit_outlined),
-                title: const Text('Editar cita'),
+                title: const Text('Editar'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  onEdit?.call();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications_active_outlined),
-                title: const Text('Enviar recordatorio'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  onSendReminder?.call();
+                  _openEditModal(context, service);
                 },
               ),
               ListTile(
@@ -322,7 +291,7 @@ class AppointmentCardWidget extends StatelessWidget {
                 title: const Text('Cancelar cita'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  onCancel?.call();
+                  if (onCancel != null) onCancel!();
                 },
               ),
               ListTile(
@@ -330,7 +299,7 @@ class AppointmentCardWidget extends StatelessWidget {
                 title: const Text('Eliminar cita'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _showDeleteConfirmation(context);
+                  if (onDelete != null) onDelete!();
                 },
               ),
             ],

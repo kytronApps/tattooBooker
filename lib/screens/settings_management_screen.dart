@@ -28,7 +28,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadUserSettings();
   }
 
@@ -179,6 +179,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
                 children: [
                   _buildWorkingHoursTab(),
                   _buildBlockedDatesTab(),
+                  _buildHistoryTab(), // 👈 Aquí se añadió el histórico
                 ],
               ),
             ),
@@ -215,6 +216,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         tabs: const [
           Tab(text: 'Horarios'),
           Tab(text: 'Bloqueados'),
+          Tab(text: 'Histórico'),
         ],
       ),
     );
@@ -238,19 +240,146 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
   }
 
   // 🔹 Tab Bloqueados
-Widget _buildBlockedDatesTab() {
-  return SingleChildScrollView(
-    child: BlockedDatesWidget(
-      blockedDates: _blockedDates,
-      onDateBlocked: (date) async {
-        setState(() => _blockedDates.add(date));
-        await _saveSettingsToFirestore(); // 🔥 Guarda cambio inmediato
+  Widget _buildBlockedDatesTab() {
+    return SingleChildScrollView(
+      child: BlockedDatesWidget(
+        blockedDates: _blockedDates,
+        onDateBlocked: (date) async {
+          setState(() => _blockedDates.add(date));
+          await _saveSettingsToFirestore(); // 🔥 Guarda cambio inmediato
+        },
+        onDateUnblocked: (date) async {
+          setState(() => _blockedDates.remove(date));
+          await _saveSettingsToFirestore(); // 🔥 Persistencia instantánea
+        },
+      ),
+    );
+  }
+
+  // 🔹 Tab Histórico
+  Widget _buildHistoryTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('appointments_history')
+          .orderBy('movedToHistoryAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 5.h),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history_rounded,
+                      size: 40.sp,
+                      color:
+                          AppTheme.lightTheme.colorScheme.onSurfaceVariant),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Sin citas en el histórico',
+                    style:
+                        AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      color:
+                          AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: 1.h),
+                  Text(
+                    'Las citas canceladas aparecerán aquí automáticamente.',
+                    textAlign: TextAlign.center,
+                    style:
+                        AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant
+                          .withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return ListView.builder(
+          padding: EdgeInsets.only(top: 1.h),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            final client = data['clientName'] ?? 'Cliente desconocido';
+            final service = data['serviceType'] ?? 'Servicio';
+            final time = data['timeSlot'] ?? '--:--';
+            final date = data['date'] ?? 'Sin fecha';
+
+            return Card(
+              margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadiusMedium),
+              ),
+              elevation: AppTheme.elevationLow,
+              child: Padding(
+                padding: EdgeInsets.all(4.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      client,
+                      style: AppTheme.lightTheme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 0.5.h),
+                    Row(
+                      children: [
+                        Icon(Icons.design_services_rounded,
+                            color: AppTheme.lightTheme.colorScheme
+                                .onSurfaceVariant,
+                            size: 4.w),
+                        SizedBox(width: 2.w),
+                        Expanded(
+                          child: Text(
+                            service,
+                            style:
+                                AppTheme.lightTheme.textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 0.5.h),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time,
+                            color: AppTheme.lightTheme.colorScheme
+                                .onSurfaceVariant,
+                            size: 4.w),
+                        SizedBox(width: 2.w),
+                        Text(time,
+                            style:
+                                AppTheme.lightTheme.textTheme.bodyMedium),
+                        SizedBox(width: 3.w),
+                        Icon(Icons.calendar_today,
+                            color: AppTheme.lightTheme.colorScheme
+                                .onSurfaceVariant,
+                            size: 4.w),
+                        SizedBox(width: 2.w),
+                        Text(date,
+                            style:
+                                AppTheme.lightTheme.textTheme.bodyMedium),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
-      onDateUnblocked: (date) async {
-        setState(() => _blockedDates.remove(date));
-        await _saveSettingsToFirestore(); // 🔥 Persistencia instantánea
-      },
-    ),
-  );
+    );
+  }
 }
-    }

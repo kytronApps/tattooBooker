@@ -4,6 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/calendar_sync_service.dart';
+import '../services/appointment_actions_service.dart';
 import '../screens/settings_management_screen.dart';
 
 import '../../core/app_export.dart';
@@ -15,15 +16,12 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/sync_indicator_widget.dart';
 import '../screens/calendar_management_screen.dart';
 
-
 class AppointmentDashboard extends StatefulWidget {
   const AppointmentDashboard({Key? key}) : super(key: key);
 
   @override
   State<AppointmentDashboard> createState() => _AppointmentDashboardState();
 }
-
-
 
 class _AppointmentDashboardState extends State<AppointmentDashboard>
     with TickerProviderStateMixin {
@@ -36,6 +34,8 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CalendarSyncService _calendarService = CalendarSyncService();
+  final AppointmentActionsService _appointmentService = AppointmentActionsService();
+
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
 
@@ -43,7 +43,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _fetchAppointments();
+    _listenAppointmentsRealtime(); // 🔥 Escucha en tiempo real
     _simulateNetworkStatus();
   }
 
@@ -53,71 +53,44 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     super.dispose();
   }
 
-  Future<void> _fetchAppointments() async {
-    setState(() => _isSyncing = true);
-
-    try {
-      final snapshot = await _firestore.collection('appointments').get();
-      _appointments = snapshot.docs.map((doc) {
+  // 🔹 Escucha en tiempo real las citas activas
+  void _listenAppointmentsRealtime() {
+    _firestore
+        .collection('appointments')
+        .where('status', isNotEqualTo: 'cancelado')
+        .snapshots()
+        .listen((snapshot) {
+      final appointments = snapshot.docs.map((doc) {
         final data = doc.data();
-        // Valores por defecto para evitar errores de tipo Null
-        data['clientName'] = data['clientName'] ?? '';
-        data['serviceType'] = data['serviceType'] ?? '';
-        data['date'] = data['date'] ?? 'Sin fecha';
-        data['dayOfWeek'] = data['dayOfWeek'] ?? '';
-        data['status'] = data['status'] ?? 'pendiente';
-        data['price'] = data['price'] ?? '';
-        data['timeSlot'] = data['timeSlot'] ?? '';
-        data['phone'] = data['phone'] ?? '';
-        data['email'] = data['email'] ?? '';
         data['id'] = doc.id;
         return data;
       }).toList();
 
-      _filteredAppointments = List.from(_appointments);
-
-      print("🔹 ${_appointments.length} citas cargadas desde Firestore");
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Error al cargar las citas: $e",
-        toastLength: Toast.LENGTH_LONG,
-        backgroundColor: AppTheme.lightTheme.colorScheme.error,
-        textColor: Colors.white,
-      );
-    } finally {
-      if (mounted) setState(() => _isSyncing = false);
-    }
+      setState(() {
+        _appointments = appointments;
+        _filteredAppointments = _applySearchFilter(appointments, _searchQuery);
+      });
+    });
   }
 
-  void _simulateNetworkStatus() {
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted) setState(() => _isOnline = false);
-    });
+  // 🔍 Filtrado por búsqueda
+  List<Map<String, dynamic>> _applySearchFilter(
+      List<Map<String, dynamic>> list, String query) {
+    if (query.isEmpty) return List.from(list);
 
-    Future.delayed(const Duration(seconds: 15), () {
-      if (mounted) {
-        setState(() {
-          _isOnline = true;
-          _lastSyncTime = DateTime.now();
-        });
-      }
-    });
+    final searchLower = query.toLowerCase();
+    return list.where((appointment) {
+      final client = (appointment['clientName'] ?? '').toString().toLowerCase();
+      final service =
+          (appointment['serviceType'] ?? '').toString().toLowerCase();
+      return client.contains(searchLower) || service.contains(searchLower);
+    }).toList();
   }
 
   void _filterAppointments(String query) {
     setState(() {
       _searchQuery = query;
-      if (query.isEmpty) {
-        _filteredAppointments = List.from(_appointments);
-      } else {
-        _filteredAppointments = _appointments.where((appointment) {
-          final clientName = (appointment['clientName'] ?? '').toString().toLowerCase();
-          final serviceType = (appointment['serviceType'] ?? '').toString().toLowerCase();
-          final searchLower = query.toLowerCase();
-          return clientName.contains(searchLower) ||
-              serviceType.contains(searchLower);
-        }).toList();
-      }
+      _filteredAppointments = _applySearchFilter(_appointments, query);
     });
   }
 
@@ -128,210 +101,53 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     });
   }
 
+  void _simulateNetworkStatus() {
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted) setState(() => _isOnline = false);
+    });
+    Future.delayed(const Duration(seconds: 15), () {
+      if (mounted) {
+        setState(() {
+          _isOnline = true;
+          _lastSyncTime = DateTime.now();
+        });
+      }
+    });
+  }
+
   Future<void> _refreshAppointments() async {
     HapticFeedback.lightImpact();
-    await _fetchAppointments();
-
+    await Future.delayed(const Duration(milliseconds: 300));
     Fluttertoast.showToast(
-      msg: "Citas actualizadas desde Firestore",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
+      msg: "Actualizado 🔄",
       backgroundColor: AppTheme.successColor,
       textColor: Colors.white,
     );
   }
 
-  void _retrySync() => _refreshAppointments();
-
-  void _showNotifications() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.borderRadiusLarge)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(4.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 12.w,
-                height: 0.5.h,
-                decoration: BoxDecoration(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.borderRadiusSmall),
-                ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                'Notificaciones',
-                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 2.h),
-              ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(2.w),
-                  decoration: BoxDecoration(
-                    color: AppTheme.warningColor.withValues(alpha: 0.1),
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.borderRadiusSmall),
-                  ),
-                  child: CustomIconWidget(
-                    iconName: 'schedule',
-                    color: AppTheme.warningColor,
-                    size: 5.w,
-                  ),
-                ),
-                title: const Text('Cita pendiente de confirmación'),
-                subtitle: const Text('Carlos Ruiz - Mañana 14:30'),
-                trailing: Text('2 min',
-                    style: AppTheme.lightTheme.textTheme.labelSmall),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _onAppointmentTap(Map<String, dynamic> appointment) {
-    Navigator.pushNamed(
-      context,
-      '/appointment-detail-modal',
-      arguments: appointment,
-    );
-  }
-
-  void _onEditAppointment(Map<String, dynamic> appointment) {
-    Fluttertoast.showToast(
-      msg: "Editando cita de ${appointment['clientName']}",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-    );
-  }
-
-  void _onCancelAppointment(Map<String, dynamic> appointment) {
-    setState(() {
-      final index =
-          _appointments.indexWhere((a) => a['id'] == appointment['id']);
-      if (index != -1) {
-        _appointments[index]['status'] = 'cancelado';
-        _filterAppointments(_searchQuery);
-      }
-    });
-
-    Fluttertoast.showToast(
-      msg: "Cita cancelada: ${appointment['clientName']}",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: AppTheme.warningColor,
-      textColor: Colors.white,
-    );
-  }
-
-  void _onDeleteAppointment(Map<String, dynamic> appointment) {
-    setState(() {
-      _appointments.removeWhere((a) => a['id'] == appointment['id']);
-      _filterAppointments(_searchQuery);
-    });
-
-    Fluttertoast.showToast(
-      msg: "Cita eliminada: ${appointment['clientName']}",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: AppTheme.lightTheme.colorScheme.error,
-      textColor: Colors.white,
-    );
-  }
-
-  void _onSendReminder(Map<String, dynamic> appointment) {
-    Fluttertoast.showToast(
-      msg: "Recordatorio enviado a ${appointment['clientName']}",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: AppTheme.infoColor,
-      textColor: Colors.white,
-    );
-  }
-
-  Future<void> _syncAppointmentsToCalendar() async {
-    setState(() => _isSyncing = true);
+  Future<void> _moveToHistory(Map<String, dynamic> appointment) async {
     try {
-      for (var appointment in _appointments) {
-        final date = DateTime.tryParse((appointment['date'] ?? '').toString());
-        if (date == null) continue;
-        final timeSlot = (appointment['timeSlot'] ?? '').toString();
+      await _firestore
+          .collection('appointments_history')
+          .doc(appointment['id'])
+          .set({
+        ...appointment,
+        'movedToHistoryAt': DateTime.now().toIso8601String(),
+      });
 
-        final times = timeSlot.split('-').map((e) => e.trim()).toList();
-        if (times.length == 2) {
-          final startParts = times[0].split(':');
-          final endParts = times[1].split(':');
-
-          final start = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            int.tryParse(startParts[0]) ?? 0,
-            int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0,
-          );
-          final end = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            int.tryParse(endParts[0]) ?? 0,
-            int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0,
-          );
-
-          await _calendarService.addAppointmentToCalendar(
-            title: '${appointment['clientName']} - ${appointment['serviceType']}',
-            description: 'Teléfono: ${appointment['phone']}',
-            startTime: start,
-            endTime: end,
-          );
-        }
-      }
-
-      Fluttertoast.showToast(
-        msg: "Citas sincronizadas con el calendario 📅",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: AppTheme.successColor,
-        textColor: Colors.white,
-      );
+      await _firestore.collection('appointments').doc(appointment['id']).delete();
+      debugPrint("📦 Cita movida al histórico: ${appointment['id']}");
     } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Error al sincronizar calendario: $e",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: AppTheme.lightTheme.colorScheme.error,
-        textColor: Colors.white,
-      );
-    } finally {
-      if (mounted) setState(() => _isSyncing = false);
+      debugPrint("❌ Error moviendo cita al histórico: $e");
     }
-  }
-
-  void _createNewAppointment() {
-    Fluttertoast.showToast(
-      msg: "Abriendo formulario de nueva cita",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-    );
   }
 
   Map<String, List<Map<String, dynamic>>> _groupAppointmentsByDate() {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
-
     for (final appointment in _filteredAppointments) {
       final date = (appointment['date'] ?? 'Sin fecha').toString();
       grouped.putIfAbsent(date, () => []).add(appointment);
     }
-
     final sortedKeys = grouped.keys.toList()..sort();
     return {for (var k in sortedKeys) k: grouped[k]!};
   }
@@ -344,7 +160,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       body: Column(
         children: [
-         DashboardHeaderWidget(
+          DashboardHeaderWidget(
             studioName: "TattooBooker",
             currentDate: (() {
               final now = DateTime.now();
@@ -360,7 +176,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
               return '$dayName, ${now.day} de $monthName ${now.year}';
             })(),
             notificationCount: 3,
-            onNotificationTap: _showNotifications,
+            onNotificationTap: () {},
           ),
           Container(
             color: AppTheme.lightTheme.colorScheme.surface,
@@ -379,7 +195,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Dashboard
+                // 🗓 Dashboard principal
                 Column(
                   children: [
                     if (!_isOnline || _isSyncing)
@@ -387,7 +203,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                         isOnline: _isOnline,
                         isSyncing: _isSyncing,
                         lastSyncTime: _lastSyncTime,
-                        onRetrySync: _retrySync,
+                        onRetrySync: _refreshAppointments,
                       ),
                     SearchBarWidget(
                       isExpanded: _isSearchExpanded,
@@ -405,14 +221,16 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                     ? 'No se encontraron citas'
                                     : 'No hay citas programadas',
                                 subtitle: _searchQuery.isNotEmpty
-                                    ? 'Intenta con otros términos de búsqueda o revisa la ortografía.'
-                                    : 'Comienza creando tu primera cita para gestionar las reservas.',
+                                    ? 'Prueba con otro término de búsqueda'
+                                    : 'Comienza creando tu primera cita',
                                 buttonText: _searchQuery.isNotEmpty
                                     ? 'Limpiar Búsqueda'
-                                    : 'Crear Primera Cita',
+                                    : 'Nueva Cita',
                                 onButtonPressed: _searchQuery.isNotEmpty
                                     ? _clearSearch
-                                    : _createNewAppointment,
+                                    : () => Fluttertoast.showToast(
+                                          msg: "Abrir formulario de cita",
+                                        ),
                                 illustrationUrl:
                                     "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800",
                               ),
@@ -431,26 +249,31 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                   final first = appointments.first;
 
                                   return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       DateSectionWidget(
                                         date: date,
                                         dayOfWeek: first['dayOfWeek'] ?? '',
                                         appointmentCount: appointments.length,
                                       ),
-                                      ...appointments.map((a) =>
-                                          AppointmentCardWidget(
-                                            appointment: a,
-                                            onTap: () => _onAppointmentTap(a),
-                                            onEdit: () => _onEditAppointment(a),
-                                            onCancel: () =>
-                                                _onCancelAppointment(a),
-                                            onDelete: () =>
-                                                _onDeleteAppointment(a),
-                                            onSendReminder: () =>
-                                                _onSendReminder(a),
-                                          )),
+                                      ...appointments.map(
+                                        (a) => AppointmentCardWidget(
+                                          appointment: a,
+                                          // 🔹 Cancelar → mover al histórico
+                                          onCancel: () async {
+                                            await _appointmentService
+                                                .cancelAppointment(
+                                                    context, a['id']);
+                                            await _moveToHistory(a);
+                                          },
+                                          // 🔹 Eliminar
+                                          onDelete: () async {
+                                            await _appointmentService
+                                                .deleteAppointment(
+                                                    context, a['id']);
+                                          },
+                                        ),
+                                      ),
                                       SizedBox(height: 1.h),
                                     ],
                                   );
@@ -460,37 +283,9 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                     ),
                   ],
                 ),
-                // Calendario
                 const CalendarManagementScreen(),
-                // Links
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CustomIconWidget(
-                        iconName: 'link',
-                        size: 20.w,
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        'Gestión de Links',
-                        style: AppTheme.lightTheme.textTheme.headlineSmall,
-                      ),
-                      SizedBox(height: 1.h),
-                      Text(
-                        'Próximamente disponible',
-                        style: AppTheme.lightTheme.textTheme.bodyMedium
-                            ?.copyWith(
-                          color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Ajustes
-                // Ajustes
-const SettingsManagementScreen(),
+                const Center(child: Text("Gestión de Links (próximamente)")),
+                const SettingsManagementScreen(),
               ],
             ),
           ),
@@ -498,7 +293,8 @@ const SettingsManagementScreen(),
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
-              onPressed: _createNewAppointment,
+              onPressed: () =>
+                  Fluttertoast.showToast(msg: "Crear nueva cita 🖋️"),
               backgroundColor: AppTheme.lightTheme.colorScheme.primary,
               child: Icon(
                 Icons.add,
