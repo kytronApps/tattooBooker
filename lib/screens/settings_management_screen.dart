@@ -168,12 +168,30 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _saveSettingsToFirestore,
-      label: const Text('Guardar'),
-      icon: const Icon(Icons.save),
+   floatingActionButton: Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    // Botón para agregar cita
+    FloatingActionButton(
+      heroTag: 'add_appointment',
       backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+      onPressed: () {
+        Navigator.pushNamed(context, '/new-appointment');
+      },
+      child: const Icon(Icons.add, color: Colors.white, size: 28),
     ),
+    SizedBox(height: 1.5.h),
+
+    // Botón para guardar configuración
+    FloatingActionButton(
+      heroTag: 'save_settings',
+      backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+      onPressed: _saveSettingsToFirestore,
+      child: const Icon(Icons.save_outlined, color: Colors.white, size: 26),
+    ),
+  ],
+),
   );
 }
 
