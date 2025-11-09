@@ -6,14 +6,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/calendar_sync_service.dart';
 import '../services/appointment_actions_service.dart';
 import '../screens/settings_management_screen.dart';
-
 import '../../core/app_export.dart';
 import '../widgets/appointment_card_widget.dart';
 import '../widgets/dashboard_header_widget.dart';
 import '../widgets/date_section_widget.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/search_bar_widget.dart';
-import '../widgets/sync_indicator_widget.dart';
+import '../widgets/notifications_dropdown_widget.dart';
 import '../screens/calendar_management_screen.dart';
 
 class AppointmentDashboard extends StatefulWidget {
@@ -34,22 +33,27 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CalendarSyncService _calendarService = CalendarSyncService();
-  final AppointmentActionsService _appointmentService = AppointmentActionsService();
+  final AppointmentActionsService _appointmentService =
+      AppointmentActionsService();
 
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
+  List<Map<String, dynamic>> _notifications = [];
+  List<String> _knownAppointments = [];
+  OverlayEntry? _notificationsOverlay;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _listenAppointmentsRealtime(); // 🔥 Escucha en tiempo real
+    _listenAppointmentsRealtime();
     _simulateNetworkStatus();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _notificationsOverlay?.remove();
     super.dispose();
   }
 
@@ -66,6 +70,18 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
         return data;
       }).toList();
 
+      // 🔍 Detectar nuevas citas
+      final newAppointments =
+          appointments.where((a) => !_knownAppointments.contains(a['id']));
+
+      for (var newA in newAppointments) {
+        if (newA['status'] == 'pendiente') {
+          _showNewAppointmentNotification(newA);
+        }
+      }
+
+      _knownAppointments = appointments.map((a) => a['id'] as String).toList();
+
       setState(() {
         _appointments = appointments;
         _filteredAppointments = _applySearchFilter(appointments, _searchQuery);
@@ -73,7 +89,27 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     });
   }
 
-  // 🔍 Filtrado por búsqueda
+  // 🧭 Mostrar notificación visual y añadir a la bandeja
+  void _showNewAppointmentNotification(Map<String, dynamic> appointment) {
+    final clientName = appointment['clientName'] ?? 'Cliente';
+    final time = appointment['time'] ?? '';
+    final date = appointment['date'] ?? '';
+
+    Fluttertoast.showToast(
+      msg: "📩 Nueva cita de $clientName el $date a las $time",
+      backgroundColor: AppTheme.infoColor,
+      textColor: Colors.white,
+      gravity: ToastGravity.TOP,
+    );
+
+    HapticFeedback.mediumImpact();
+
+    setState(() {
+      _notifications.insert(0, appointment);
+    });
+  }
+
+  // 🗂 Filtrado por búsqueda
   List<Map<String, dynamic>> _applySearchFilter(
       List<Map<String, dynamic>> list, String query) {
     if (query.isEmpty) return List.from(list);
@@ -152,6 +188,67 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     return {for (var k in sortedKeys) k: grouped[k]!};
   }
 
+  // 🔔 Mostrar / Ocultar panel de notificaciones
+  void _toggleNotificationsPanel(BuildContext context) {
+    if (_notificationsOverlay != null) {
+      _notificationsOverlay!.remove();
+      _notificationsOverlay = null;
+      return;
+    }
+
+    final overlay = Overlay.of(context);
+    _notificationsOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 80,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: NotificationsDropdownWidget(
+            notifications: _notifications,
+            onView: _openAppointmentDetails,
+            onDelete: (id) {
+              setState(() {
+                _notifications.removeWhere((n) => n['id'] == id);
+              });
+            },
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(_notificationsOverlay!);
+  }
+
+  // 🔍 Ver detalles de cita
+  void _openAppointmentDetails(Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Detalles de la cita"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("👤 Cliente: ${appointment['clientName']}"),
+              Text("📞 Teléfono: ${appointment['phone'] ?? '—'}"),
+              Text("💬 Servicio: ${appointment['serviceType']}"),
+              Text("📅 Fecha: ${appointment['date']}"),
+              Text("⏰ Hora: ${appointment['time']}"),
+              Text("⚙️ Estado: ${appointment['status']}"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cerrar"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final groupedAppointments = _groupAppointmentsByDate();
@@ -165,18 +262,34 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
             currentDate: (() {
               final now = DateTime.now();
               const days = [
-                'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+                'Lunes',
+                'Martes',
+                'Miércoles',
+                'Jueves',
+                'Viernes',
+                'Sábado',
+                'Domingo'
               ];
               const months = [
-                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                'Enero',
+                'Febrero',
+                'Marzo',
+                'Abril',
+                'Mayo',
+                'Junio',
+                'Julio',
+                'Agosto',
+                'Septiembre',
+                'Octubre',
+                'Noviembre',
+                'Diciembre'
               ];
               final dayName = days[(now.weekday - 1) % 7];
               final monthName = months[(now.month - 1) % 12];
               return '$dayName, ${now.day} de $monthName ${now.year}';
             })(),
-            notificationCount: 3,
-            onNotificationTap: () {},
+            notificationCount: _notifications.length,
+            onNotificationTap: () => _toggleNotificationsPanel(context),
           ),
           Container(
             color: AppTheme.lightTheme.colorScheme.surface,
@@ -198,13 +311,6 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                 // 🗓 Dashboard principal
                 Column(
                   children: [
-                    if (!_isOnline || _isSyncing)
-                      SyncIndicatorWidget(
-                        isOnline: _isOnline,
-                        isSyncing: _isSyncing,
-                        lastSyncTime: _lastSyncTime,
-                        onRetrySync: _refreshAppointments,
-                      ),
                     SearchBarWidget(
                       isExpanded: _isSearchExpanded,
                       onToggle: () =>
@@ -239,34 +345,36 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                               onRefresh: _refreshAppointments,
                               color: AppTheme.lightTheme.colorScheme.primary,
                               child: ListView.builder(
-                                physics: const AlwaysScrollableScrollPhysics(),
+                                physics:
+                                    const AlwaysScrollableScrollPhysics(),
                                 itemCount: groupedAppointments.length,
                                 itemBuilder: (context, index) {
-                                  final date =
-                                      groupedAppointments.keys.elementAt(index);
+                                  final date = groupedAppointments.keys
+                                      .elementAt(index);
                                   final appointments =
                                       groupedAppointments[date]!;
                                   final first = appointments.first;
 
                                   return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       DateSectionWidget(
                                         date: date,
-                                        dayOfWeek: first['dayOfWeek'] ?? '',
-                                        appointmentCount: appointments.length,
+                                        dayOfWeek:
+                                            first['dayOfWeek'] ?? '',
+                                        appointmentCount:
+                                            appointments.length,
                                       ),
                                       ...appointments.map(
                                         (a) => AppointmentCardWidget(
                                           appointment: a,
-                                          // 🔹 Cancelar → mover al histórico
                                           onCancel: () async {
                                             await _appointmentService
                                                 .cancelAppointment(
                                                     context, a['id']);
                                             await _moveToHistory(a);
                                           },
-                                          // 🔹 Eliminar
                                           onDelete: () async {
                                             await _appointmentService
                                                 .deleteAppointment(
@@ -291,27 +399,28 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
           ),
         ],
       ),
-     floatingActionButton: _tabController.index == 0
-    ? FloatingActionButton(
-        onPressed: () async {
-          final created =
-              await Navigator.pushNamed(context, AppRoutes.newAppointment);
-          if (created == true) {
-            Fluttertoast.showToast(
-              msg: "Cita añadida correctamente 🕒",
-              backgroundColor: AppTheme.successColor,
-              textColor: Colors.white,
-            );
-          }
-        },
-        backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-        child: Icon(
-          Icons.add,
-          color: AppTheme.lightTheme.colorScheme.onPrimary,
-          size: 8.w,
-        ),
-      )
-    : null,
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              onPressed: () async {
+                final created =
+                    await Navigator.pushNamed(context, AppRoutes.newAppointment);
+                if (created == true) {
+                  Fluttertoast.showToast(
+                    msg: "Cita añadida correctamente 🕒",
+                    backgroundColor: AppTheme.successColor,
+                    textColor: Colors.white,
+                  );
+                }
+              },
+              backgroundColor:
+                  AppTheme.lightTheme.colorScheme.primary,
+              child: Icon(
+                Icons.add,
+                color: AppTheme.lightTheme.colorScheme.onPrimary,
+                size: 8.w,
+              ),
+            )
+          : null,
     );
   }
 }
