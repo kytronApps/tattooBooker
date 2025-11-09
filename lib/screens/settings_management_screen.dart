@@ -79,12 +79,14 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('⚠️ Error cargando configuración: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Error al cargar la configuración'),
-          backgroundColor: AppTheme.lightTheme.colorScheme.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: const Text('Error al cargar la configuración'),
+            backgroundColor: AppTheme.lightTheme.colorScheme.error,
+          ),
+        );
+      }
     }
   }
 

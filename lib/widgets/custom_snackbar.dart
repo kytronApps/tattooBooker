@@ -46,8 +46,15 @@ class CustomSnackBar {
       ),
     );
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(snackBar);
+    // Use maybeOf to avoid exceptions when the context is no longer active
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger != null) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(snackBar);
+    } else {
+      // Fallback: log the message in debug mode
+      debugPrint('SnackBar requested but no ScaffoldMessenger found: $message');
+    }
   }
 }

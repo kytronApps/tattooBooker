@@ -23,7 +23,8 @@ Future<void> main() async {
       debugPrint("ℹ️ Firebase ya estaba inicializado");
     }
   } catch (e) {
-    debugPrint("⚠️ Firebase ya inicializado: $e");
+    // Evitar log verbose de duplicate-app: ya existe la instancia por hot-reload u otra inicialización
+    debugPrint("⚠️ Firebase init skipped (already initialized)");
   }
 
   // 🔹 Recuperar sesión actual (si existe)
