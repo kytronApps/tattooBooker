@@ -6,24 +6,29 @@ import 'package:sizer/sizer.dart';
 
 import 'firebase_options.dart';
 import 'core/app_export.dart';
-import 'routes/app_routes.dart'; // ✅ importa las rutas centralizadas
+import 'routes/app_routes.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // 🔹 Inicializa Firebase solo si no hay instancias activas
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      debugPrint("✅ Firebase inicializado correctamente");
     } else {
-      Firebase.app();
+      Firebase.app(); // Usa la instancia existente
+      debugPrint("ℹ️ Firebase ya estaba inicializado");
     }
   } catch (e) {
-    debugPrint('⚠️ Firebase ya inicializado: $e');
+    debugPrint("⚠️ Firebase ya inicializado: $e");
   }
 
+  // 🔹 Recuperar sesión actual (si existe)
   final user = FirebaseAuth.instance.currentUser;
+
   runApp(TattooBookerApp(sessionActive: user != null));
 }
 
@@ -49,12 +54,11 @@ class TattooBookerApp extends StatelessWidget {
             Locale('en', 'US'),
           ],
 
-          // ✅ Pantalla inicial según sesión
-          initialRoute: sessionActive
-              ? AppRoutes.mainLayout
-              : AppRoutes.adminLogin,
+          // ✅ Ruta inicial según sesión
+          initialRoute:
+              sessionActive ? AppRoutes.mainLayout : AppRoutes.adminLogin,
 
-          // ✅ Usa las rutas centralizadas
+          // ✅ Rutas centralizadas
           routes: AppRoutes.routes,
         );
       },

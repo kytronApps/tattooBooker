@@ -56,31 +56,41 @@ class AppointmentCardWidget extends StatelessWidget {
       child: Slidable(
         key: ValueKey(appointment['id']),
         startActionPane: ActionPane(
-          motion: const ScrollMotion(),
-          children: [
-            _actionButton(
-              context,
-              color: theme.colorScheme.primary,
-              icon: Icons.edit,
-              label: 'Editar',
-              onTap: () => _openEditModal(context, actionsService),
-            ),
-            _actionButton(
-              context,
-              color: AppTheme.warningColor,
-              icon: Icons.cancel,
-              label: 'Cancelar',
-              onTap: onCancel ?? () {},
-            ),
-            _actionButton(
-              context,
-              color: const Color(0xFFD32F2F),
-              icon: Icons.delete,
-              label: 'Eliminar',
-              onTap: onDelete ?? () {},
-            ),
-          ],
-        ),
+  motion: const ScrollMotion(),
+  children: [
+    if ((appointment['status'] ?? '').toLowerCase() == 'pendiente')
+      _actionButton(
+        context,
+        color: Colors.green.shade600,
+        icon: Icons.check_circle,
+        label: 'Confirmar',
+        onTap: () async {
+          await actionsService.confirmAppointment(context, appointment['id']);
+        },
+      ),
+    _actionButton(
+      context,
+      color: theme.colorScheme.primary,
+      icon: Icons.edit,
+      label: 'Editar',
+      onTap: () => _openEditModal(context, actionsService),
+    ),
+    _actionButton(
+      context,
+      color: AppTheme.warningColor,
+      icon: Icons.cancel,
+      label: 'Cancelar',
+      onTap: onCancel ?? () {},
+    ),
+    _actionButton(
+      context,
+      color: const Color(0xFFD32F2F),
+      icon: Icons.delete,
+      label: 'Eliminar',
+      onTap: onDelete ?? () {},
+    ),
+  ],
+),
         child: Card(
           color: Theme.of(context).brightness == Brightness.dark
               ? const Color(0xFF2C2C2E)
@@ -236,13 +246,14 @@ class AppointmentCardWidget extends StatelessWidget {
       builder: (ctx) {
         return AppointmentEditModal(
           appointment: appointment,
-          onSave: (service, time, price) {
+          onSave: (service, time, price, newDate) {
             actionsService.editAppointment(
               ctx,
               appointment['id'],
               serviceType: service,
               timeSlot: time,
               price: price,
+              newDate: newDate,
             );
           },
         );

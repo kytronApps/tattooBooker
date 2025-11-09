@@ -27,14 +27,12 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   late TabController _tabController;
   bool _isSearchExpanded = false;
   bool _isOnline = true;
-  bool _isSyncing = false;
   DateTime? _lastSyncTime = DateTime.now().subtract(const Duration(minutes: 5));
   String _searchQuery = '';
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CalendarSyncService _calendarService = CalendarSyncService();
-  final AppointmentActionsService _appointmentService =
-      AppointmentActionsService();
+  final AppointmentActionsService _appointmentService = AppointmentActionsService();
 
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
@@ -70,14 +68,18 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
         return data;
       }).toList();
 
-      // 🔍 Detectar nuevas citas
-      final newAppointments =
-          appointments.where((a) => !_knownAppointments.contains(a['id']));
+      // Inicializa el panel de notificaciones con las citas no leídas
+    final unread = appointments.where((a) =>
+      (a['isRead'] == false || a['isRead'] == 'false' || a['isRead'] == null)).toList();
+
+      // 🔍 Detectar nuevas citas pendientes no leídas
+    final newAppointments = appointments.where((a) =>
+      !_knownAppointments.contains(a['id']) &&
+      (a['status'] == 'pendiente') &&
+      (a['isRead'] == false || a['isRead'] == 'false' || a['isRead'] == null));
 
       for (var newA in newAppointments) {
-        if (newA['status'] == 'pendiente') {
-          _showNewAppointmentNotification(newA);
-        }
+        _showNewAppointmentNotification(newA);
       }
 
       _knownAppointments = appointments.map((a) => a['id'] as String).toList();
@@ -85,14 +87,15 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
       setState(() {
         _appointments = appointments;
         _filteredAppointments = _applySearchFilter(appointments, _searchQuery);
+        _notifications = List.from(unread);
       });
     });
   }
 
-  // 🧭 Mostrar notificación visual y añadir a la bandeja
+  // 🔔 Mostrar notificación visual
   void _showNewAppointmentNotification(Map<String, dynamic> appointment) {
     final clientName = appointment['clientName'] ?? 'Cliente';
-    final time = appointment['time'] ?? '';
+    final time = appointment['timeSlot'] ?? appointment['time'] ?? '';
     final date = appointment['date'] ?? '';
 
     Fluttertoast.showToast(
@@ -109,11 +112,34 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     });
   }
 
-  // 🗂 Filtrado por búsqueda
+  // 🔹 Marcar notificación como leída (Firestore + UI)
+  Future<void> _markNotificationAsRead(String id) async {
+    try {
+      // Algunas colecciones guardan isRead como string ('true'/'false') por compatibilidad.
+      await _firestore.collection('appointments').doc(id).update({
+        'isRead': 'true',
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      setState(() {
+        _notifications.removeWhere((n) => n['id'] == id);
+      });
+
+      debugPrint("✅ Notificación marcada como leída: $id");
+    } catch (e) {
+      debugPrint("❌ Error al marcar notificación como leída: $e");
+      Fluttertoast.showToast(
+        msg: "Error al eliminar la notificación",
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  // 🗂 Filtro de búsqueda
   List<Map<String, dynamic>> _applySearchFilter(
       List<Map<String, dynamic>> list, String query) {
     if (query.isEmpty) return List.from(list);
-
     final searchLower = query.toLowerCase();
     return list.where((appointment) {
       final client = (appointment['clientName'] ?? '').toString().toLowerCase();
@@ -170,7 +196,6 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
         ...appointment,
         'movedToHistoryAt': DateTime.now().toIso8601String(),
       });
-
       await _firestore.collection('appointments').doc(appointment['id']).delete();
       debugPrint("📦 Cita movida al histórico: ${appointment['id']}");
     } catch (e) {
@@ -178,18 +203,49 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     }
   }
 
+  // 📅 Agrupar citas por fecha
   Map<String, List<Map<String, dynamic>>> _groupAppointmentsByDate() {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
     for (final appointment in _filteredAppointments) {
-      final date = (appointment['date'] ?? 'Sin fecha').toString();
-      grouped.putIfAbsent(date, () => []).add(appointment);
+      // Normalizar el campo date a una fecha simple 'yyyy-MM-dd'
+      String dateKey = 'Sin fecha';
+      final raw = appointment['date'];
+      if (raw != null) {
+        try {
+          if (raw is Timestamp) {
+            final d = raw.toDate();
+            dateKey = d.toIso8601String().split('T').first;
+          } else {
+            final d = DateTime.parse(raw.toString());
+            dateKey = d.toIso8601String().split('T').first;
+          }
+        } catch (_) {
+          dateKey = raw.toString();
+        }
+      }
+
+      grouped.putIfAbsent(dateKey, () => []).add(appointment);
     }
-    final sortedKeys = grouped.keys.toList()..sort();
+
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        try {
+          final da = a == 'Sin fecha' ? DateTime(1900) : DateTime.parse(a);
+          final db = b == 'Sin fecha' ? DateTime(1900) : DateTime.parse(b);
+          return da.compareTo(db);
+        } catch (_) {
+          return a.compareTo(b);
+        }
+      });
+
     return {for (var k in sortedKeys) k: grouped[k]!};
   }
 
   // 🔔 Mostrar / Ocultar panel de notificaciones
+  
+  // 🔔 Mostrar / Ocultar panel de notificaciones
   void _toggleNotificationsPanel(BuildContext context) {
+    // Si ya está abierto, ciérralo manualmente
     if (_notificationsOverlay != null) {
       _notificationsOverlay!.remove();
       _notificationsOverlay = null;
@@ -197,45 +253,64 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     }
 
     final overlay = Overlay.of(context);
-    _notificationsOverlay = OverlayEntry(
+    final entry = OverlayEntry(
       builder: (context) => Positioned(
-        top: 80,
+        top: 60,
         right: 16,
         child: Material(
           color: Colors.transparent,
-          child: NotificationsDropdownWidget(
-            notifications: _notifications,
-            onView: _openAppointmentDetails,
-            onDelete: (id) {
-              setState(() {
-                _notifications.removeWhere((n) => n['id'] == id);
-              });
-            },
+          child: GestureDetector(
+            onTap: () {}, // evita cierre accidental
+            child: NotificationsDropdownWidget(
+              onView: (notif) async {
+                await _markNotificationAsRead(notif['id']);
+                _notificationsOverlay?.remove();
+                _notificationsOverlay = null;
+                _openAppointmentDetails(notif);
+              },
+              onDelete: (id) async {
+                await _markNotificationAsRead(id);
+                _notificationsOverlay?.remove();
+                _notificationsOverlay = null;
+              },
+            ),
           ),
         ),
       ),
     );
 
-    overlay.insert(_notificationsOverlay!);
+    _notificationsOverlay = entry;
+    overlay.insert(entry);
   }
+
 
   // 🔍 Ver detalles de cita
   void _openAppointmentDetails(Map<String, dynamic> appointment) {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Detalles de la cita"),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.event_note, color: Colors.black54),
+              SizedBox(width: 8),
+              Text("Detalles de la cita"),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("👤 Cliente: ${appointment['clientName']}"),
-              Text("📞 Teléfono: ${appointment['phone'] ?? '—'}"),
-              Text("💬 Servicio: ${appointment['serviceType']}"),
-              Text("📅 Fecha: ${appointment['date']}"),
-              Text("⏰ Hora: ${appointment['time']}"),
-              Text("⚙️ Estado: ${appointment['status']}"),
+              _detailRow("👤 Cliente", appointment['clientName']),
+              _detailRow("📞 Teléfono", appointment['phone']),
+              _detailRow("💬 Servicio", appointment['serviceType']),
+              _detailRow("📅 Fecha", appointment['date']),
+              _detailRow("⏰ Hora", appointment['timeSlot'] ?? appointment['time']),
+              _detailRow("⚙️ Estado", appointment['status']),
             ],
           ),
           actions: [
@@ -246,6 +321,22 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
           ],
         );
       },
+    );
+  }
+
+  Widget _detailRow(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(value?.toString() ?? '—',
+                style: const TextStyle(color: Colors.black87)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -262,27 +353,11 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
             currentDate: (() {
               final now = DateTime.now();
               const days = [
-                'Lunes',
-                'Martes',
-                'Miércoles',
-                'Jueves',
-                'Viernes',
-                'Sábado',
-                'Domingo'
+                'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
               ];
               const months = [
-                'Enero',
-                'Febrero',
-                'Marzo',
-                'Abril',
-                'Mayo',
-                'Junio',
-                'Julio',
-                'Agosto',
-                'Septiembre',
-                'Octubre',
-                'Noviembre',
-                'Diciembre'
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
               ];
               final dayName = days[(now.weekday - 1) % 7];
               final monthName = months[(now.month - 1) % 12];
@@ -308,13 +383,11 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // 🗓 Dashboard principal
                 Column(
                   children: [
                     SearchBarWidget(
                       isExpanded: _isSearchExpanded,
-                      onToggle: () =>
-                          setState(() => _isSearchExpanded = !_isSearchExpanded),
+                      onToggle: () => setState(() => _isSearchExpanded = !_isSearchExpanded),
                       onChanged: _filterAppointments,
                       onClear: _clearSearch,
                     ),
@@ -334,9 +407,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                     : 'Nueva Cita',
                                 onButtonPressed: _searchQuery.isNotEmpty
                                     ? _clearSearch
-                                    : () => Fluttertoast.showToast(
-                                          msg: "Abrir formulario de cita",
-                                        ),
+                                    : () => Fluttertoast.showToast(msg: "Abrir formulario de cita"),
                                 illustrationUrl:
                                     "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800",
                               ),
@@ -345,40 +416,43 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                               onRefresh: _refreshAppointments,
                               color: AppTheme.lightTheme.colorScheme.primary,
                               child: ListView.builder(
-                                physics:
-                                    const AlwaysScrollableScrollPhysics(),
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 itemCount: groupedAppointments.length,
                                 itemBuilder: (context, index) {
-                                  final date = groupedAppointments.keys
-                                      .elementAt(index);
-                                  final appointments =
-                                      groupedAppointments[date]!;
+                                  final date = groupedAppointments.keys.elementAt(index);
+                                  final appointments = groupedAppointments[date]!;
                                   final first = appointments.first;
+                                  // Determinar dayOfWeek: preferimos el campo existente, sino lo calculamos desde la fecha clave
+                                  String dayOfWeek = first['dayOfWeek'] ?? '';
+                                  if (dayOfWeek.isEmpty) {
+                                    try {
+                                      final d = DateTime.parse(date);
+                                      const days = [
+                                        'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+                                      ];
+                                      dayOfWeek = days[(d.weekday - 1) % 7];
+                                    } catch (_) {
+                                      dayOfWeek = '';
+                                    }
+                                  }
 
                                   return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       DateSectionWidget(
                                         date: date,
-                                        dayOfWeek:
-                                            first['dayOfWeek'] ?? '',
-                                        appointmentCount:
-                                            appointments.length,
+                                        dayOfWeek: dayOfWeek,
+                                        appointmentCount: appointments.length,
                                       ),
                                       ...appointments.map(
                                         (a) => AppointmentCardWidget(
                                           appointment: a,
                                           onCancel: () async {
-                                            await _appointmentService
-                                                .cancelAppointment(
-                                                    context, a['id']);
+                                            await _appointmentService.cancelAppointment(context, a['id']);
                                             await _moveToHistory(a);
                                           },
                                           onDelete: () async {
-                                            await _appointmentService
-                                                .deleteAppointment(
-                                                    context, a['id']);
+                                            await _appointmentService.deleteAppointment(context, a['id']);
                                           },
                                         ),
                                       ),
@@ -412,8 +486,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   );
                 }
               },
-              backgroundColor:
-                  AppTheme.lightTheme.colorScheme.primary,
+              backgroundColor: AppTheme.lightTheme.colorScheme.primary,
               child: Icon(
                 Icons.add,
                 color: AppTheme.lightTheme.colorScheme.onPrimary,
