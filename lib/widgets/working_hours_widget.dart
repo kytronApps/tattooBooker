@@ -95,19 +95,27 @@ class WorkingHoursWidget extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      GestureDetector(
+                      InkWell(
                         onTap: () => _pickTime(context, day, true),
-                        child: Text(
-                          "${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}",
-                          style: AppTheme.lightTheme.textTheme.bodyMedium,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                          child: Text(
+                            "${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}",
+                            style: AppTheme.lightTheme.textTheme.bodyMedium,
+                          ),
                         ),
                       ),
                       Text("-", style: TextStyle(color: Colors.grey.shade600)),
-                      GestureDetector(
+                      InkWell(
                         onTap: () => _pickTime(context, day, false),
-                        child: Text(
-                          "${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}",
-                          style: AppTheme.lightTheme.textTheme.bodyMedium,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                          child: Text(
+                            "${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}",
+                            style: AppTheme.lightTheme.textTheme.bodyMedium,
+                          ),
                         ),
                       ),
                     ],

@@ -71,6 +71,23 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         );
       });
 
+      // Asegurar que todos los días tengan valores por defecto para poder editar/guardar fácilmente
+      final orderedDays = [
+        'Lunes',
+        'Martes',
+        'Miércoles',
+        'Jueves',
+        'Viernes',
+        'Sábado',
+        'Domingo'
+      ];
+
+      for (final day in orderedDays) {
+        _startTimes.putIfAbsent(day, () => const TimeOfDay(hour: 9, minute: 0));
+        _endTimes.putIfAbsent(day, () => const TimeOfDay(hour: 18, minute: 0));
+        _workingDays.putIfAbsent(day, () => false);
+      }
+
       final blockedDatesData = data['blockedDates'] as List<dynamic>? ?? [];
       _blockedDates = blockedDatesData
           .map((timestamp) => DateTime.parse(timestamp.toString()))
@@ -106,7 +123,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
       await _firestore.collection('usuarios').doc(_userId).update(dataToUpdate);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
             content: Text(
               'Configuración guardada correctamente',
@@ -121,7 +138,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     } catch (e) {
       debugPrint('❌ Error guardando configuración: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
             content: Text(
               'Error al guardar los cambios',
@@ -231,12 +248,18 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         workingDays: _workingDays,
         startTimes: _startTimes,
         endTimes: _endTimes,
-        onWorkingDayChanged: (day, value) =>
-            setState(() => _workingDays[day] = value),
-        onStartTimeChanged: (day, time) =>
-            setState(() => _startTimes[day] = time),
-        onEndTimeChanged: (day, time) =>
-            setState(() => _endTimes[day] = time),
+        onWorkingDayChanged: (day, value) async {
+          setState(() => _workingDays[day] = value);
+          await _saveSettingsToFirestore();
+        },
+        onStartTimeChanged: (day, time) async {
+          setState(() => _startTimes[day] = time);
+          await _saveSettingsToFirestore();
+        },
+        onEndTimeChanged: (day, time) async {
+          setState(() => _endTimes[day] = time);
+          await _saveSettingsToFirestore();
+        },
       ),
     );
   }
