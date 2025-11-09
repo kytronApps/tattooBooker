@@ -212,19 +212,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                 SizedBox(height: 2.h),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _isLoading ? null : _handleForgotPassword,
-                    child: Text(
-                      'Olvidé mi contraseña',
-                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.lightTheme.colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
+                
 
                 SizedBox(height: 4.h),
 

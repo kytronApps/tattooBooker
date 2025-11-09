@@ -4,7 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/calendar_sync_service.dart';
-
+import '../screens/settings_management_screen.dart';
 
 import '../../core/app_export.dart';
 import '../widgets/appointment_card_widget.dart';
@@ -345,7 +345,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
       body: Column(
         children: [
          DashboardHeaderWidget(
-            studioName: "TattooBooker Studio",
+            studioName: "TattooBooker",
             currentDate: (() {
               final now = DateTime.now();
               const days = [
@@ -489,31 +489,8 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   ),
                 ),
                 // Ajustes
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CustomIconWidget(
-                        iconName: 'settings',
-                        size: 20.w,
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        'Configuración',
-                        style: AppTheme.lightTheme.textTheme.headlineSmall,
-                      ),
-                      SizedBox(height: 1.h),
-                      Text(
-                        'Próximamente disponible',
-                        style: AppTheme.lightTheme.textTheme.bodyMedium
-                            ?.copyWith(
-                          color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Ajustes
+const SettingsManagementScreen(),
               ],
             ),
           ),
