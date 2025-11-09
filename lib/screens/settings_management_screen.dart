@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../widgets/working_hours_widget.dart';
 import '../widgets/blocked_dates_widget.dart';
@@ -19,7 +19,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isLoading = true;
-  String? _userId; // ID del admin
+  String? _userId;
   Map<String, bool> _workingDays = {};
   Map<String, TimeOfDay> _startTimes = {};
   Map<String, TimeOfDay> _endTimes = {};
@@ -28,10 +28,11 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadUserSettings();
   }
 
+  // 🔹 Cargar configuración del usuario
   Future<void> _loadUserSettings() async {
     try {
       final snapshot = await _firestore
@@ -48,11 +49,9 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
       _userId = userDoc.id;
       final data = userDoc.data();
 
-      // Días laborales
       final workingDaysData = data['workingDays'] as Map<String, dynamic>? ?? {};
       _workingDays = workingDaysData.map((k, v) => MapEntry(k, v == true));
 
-      // Horarios
       final startTimesData = data['startTimes'] as Map<String, dynamic>? ?? {};
       final endTimesData = data['endTimes'] as Map<String, dynamic>? ?? {};
 
@@ -60,10 +59,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         final parts = (timeString as String).split(':');
         return MapEntry(
           day,
-          TimeOfDay(
-            hour: int.parse(parts[0]),
-            minute: int.parse(parts[1]),
-          ),
+          TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1])),
         );
       });
 
@@ -71,14 +67,10 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         final parts = (timeString as String).split(':');
         return MapEntry(
           day,
-          TimeOfDay(
-            hour: int.parse(parts[0]),
-            minute: int.parse(parts[1]),
-          ),
+          TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1])),
         );
       });
 
-      // Días bloqueados
       final blockedDatesData = data['blockedDates'] as List<dynamic>? ?? [];
       _blockedDates = blockedDatesData
           .map((timestamp) => DateTime.parse(timestamp.toString()))
@@ -89,16 +81,16 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
       debugPrint('⚠️ Error cargando configuración: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al cargar la configuración'),
+          content: const Text('Error al cargar la configuración'),
           backgroundColor: AppTheme.lightTheme.colorScheme.error,
         ),
       );
     }
   }
 
+  // 🔹 Guardar cambios
   Future<void> _saveSettingsToFirestore() async {
     if (_userId == null) return;
-
     try {
       final dataToUpdate = {
         'workingDays': _workingDays,
@@ -106,141 +98,129 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
             MapEntry(k, '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}')),
         'endTimes': _endTimes.map((k, v) =>
             MapEntry(k, '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}')),
-        'blockedDates':
-            _blockedDates.map((d) => d.toIso8601String()).toList(),
+        'blockedDates': _blockedDates.map((d) => d.toIso8601String()).toList(),
       };
 
       await _firestore.collection('usuarios').doc(_userId).update(dataToUpdate);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Configuración guardada correctamente ✅'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Configuración guardada correctamente',
+              style: TextStyle(
+                color: AppTheme.lightTheme.colorScheme.onPrimary,
+              ),
+            ),
+            backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('❌ Error guardando configuración: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al guardar cambios'),
-          backgroundColor: AppTheme.lightTheme.colorScheme.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error al guardar los cambios',
+              style: TextStyle(
+                color: AppTheme.lightTheme.colorScheme.onError,
+              ),
+            ),
+            backgroundColor: AppTheme.lightTheme.colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
+  // 🔹 Cerrar sesión
+  void logout(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
-  // 🔹 Pantalla principal
-@override
-Widget build(BuildContext context) {
-  if (_isLoading) {
-    return const Center(child: CircularProgressIndicator());
-  }
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔸 Header fijo superior
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Configuración',
+                  style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.lightTheme.colorScheme.onSurface,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => logout(context),
+                  icon: const Icon(Icons.logout, color: Colors.redAccent),
+                  tooltip: 'Cerrar sesión',
+                ),
+              ],
+            ),
 
-  return Scaffold(
-    backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-    appBar: AppBar(
-      title: const Text("Configuración"),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.logout, color: Colors.redAccent),
-          onPressed: () =>
-              Navigator.pushReplacementNamed(context, '/admin-login-screen'),
+            // 🔸 Tabs principales
+            _buildTabBar(),
+            SizedBox(height: 1.h),
+
+            // 🔸 Contenido
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildWorkingHoursTab(),
+                  _buildBlockedDatesTab(),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-    body: Column(
-      children: [
-        _buildTabBar(),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildWorkingHoursTab(),
-              _buildBlockedDatesTab(),
-            ],
-          ),
-        ),
-      ],
-    ),
-   floatingActionButton: Column(
-  mainAxisSize: MainAxisSize.min,
-  crossAxisAlignment: CrossAxisAlignment.end,
-  children: [
-    // Botón para agregar cita
-    FloatingActionButton(
-      heroTag: 'add_appointment',
-      backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-      onPressed: () {
-        Navigator.pushNamed(context, '/new-appointment');
-      },
-      child: const Icon(Icons.add, color: Colors.white, size: 28),
-    ),
-    SizedBox(height: 1.5.h),
-
-    // Botón para guardar configuración
-    FloatingActionButton(
-      heroTag: 'save_settings',
-      backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-      onPressed: _saveSettingsToFirestore,
-      child: const Icon(Icons.save_outlined, color: Colors.white, size: 26),
-    ),
-  ],
-),
-  );
-}
-
-Widget _buildTabBar() {
-  return Container(
-    margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-    decoration: BoxDecoration(
-      color: AppTheme.lightTheme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
-      boxShadow: [
-        BoxShadow(
-          color: AppTheme.shadowLight,
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: TabBar(
-      controller: _tabController,
-      indicator: BoxDecoration(
-        color: AppTheme.lightTheme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
       ),
-      labelColor: AppTheme.lightTheme.colorScheme.onPrimary,
-      unselectedLabelColor:
-          AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6),
-      tabs: const [
-        Tab(text: 'Horarios'),
-        Tab(text: 'Bloqueados'),
-      ],
-    ),
-  );
-}
+    );
+  }
 
-  // 🔸 Tab Logout
-  Widget _buildLogoutTab() => Center(
-        child: ElevatedButton.icon(
-          onPressed: () => Navigator.pushReplacementNamed(context, '/admin-login-screen'),
-          icon: const Icon(Icons.exit_to_app),
-          label: const Text('Cerrar Sesión'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.lightTheme.colorScheme.error,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+  // 🔹 Tabs
+  Widget _buildTabBar() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 1.h),
+      decoration: BoxDecoration(
+        color: AppTheme.lightTheme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: AppTheme.lightTheme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),
-      );
+        labelColor: AppTheme.lightTheme.colorScheme.onPrimary,
+        unselectedLabelColor:
+            AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6),
+        tabs: const [
+          Tab(text: 'Horarios'),
+          Tab(text: 'Bloqueados'),
+        ],
+      ),
+    );
+  }
 
-  // 🔸 Tab Horarios
+  // 🔹 Tab Horarios
   Widget _buildWorkingHoursTab() {
     return SingleChildScrollView(
       child: WorkingHoursWidget(
@@ -257,16 +237,20 @@ Widget _buildTabBar() {
     );
   }
 
-  // 🔸 Tab Bloqueados
-  Widget _buildBlockedDatesTab() {
-    return SingleChildScrollView(
-      child: BlockedDatesWidget(
-        blockedDates: _blockedDates,
-        onDateBlocked: (date) =>
-            setState(() => _blockedDates.add(date)),
-        onDateUnblocked: (date) =>
-            setState(() => _blockedDates.remove(date)),
-      ),
-    );
-  }
+  // 🔹 Tab Bloqueados
+Widget _buildBlockedDatesTab() {
+  return SingleChildScrollView(
+    child: BlockedDatesWidget(
+      blockedDates: _blockedDates,
+      onDateBlocked: (date) async {
+        setState(() => _blockedDates.add(date));
+        await _saveSettingsToFirestore(); // 🔥 Guarda cambio inmediato
+      },
+      onDateUnblocked: (date) async {
+        setState(() => _blockedDates.remove(date));
+        await _saveSettingsToFirestore(); // 🔥 Persistencia instantánea
+      },
+    ),
+  );
 }
+    }

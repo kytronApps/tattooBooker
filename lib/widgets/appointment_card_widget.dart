@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:sizer/sizer.dart';
-
 import '../../../core/app_export.dart';
 
 class AppointmentCardWidget extends StatelessWidget {
@@ -52,6 +51,8 @@ class AppointmentCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.lightTheme;
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       child: Slidable(
@@ -59,176 +60,56 @@ class AppointmentCardWidget extends StatelessWidget {
         startActionPane: ActionPane(
           motion: const ScrollMotion(),
           children: [
-            SlidableAction(
-              onPressed: (_) => onEdit?.call(),
-              backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-              foregroundColor: AppTheme.lightTheme.colorScheme.onPrimary,
+            _actionButton(
+              context,
+              color: theme.colorScheme.primary,
               icon: Icons.edit,
               label: 'Editar',
-              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              onTap: onEdit,
             ),
-            SlidableAction(
-              onPressed: (_) => onCancel?.call(),
-              backgroundColor: AppTheme.warningColor,
-              foregroundColor: Colors.white,
+            _actionButton(
+              context,
+              color: AppTheme.warningColor,
               icon: Icons.cancel,
               label: 'Cancelar',
-              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              onTap: onCancel,
             ),
-            SlidableAction(
-              onPressed: (_) => onSendReminder?.call(),
-              backgroundColor: AppTheme.infoColor,
-              foregroundColor: Colors.white,
+            _actionButton(
+              context,
+              color: AppTheme.infoColor,
               icon: Icons.notifications,
               label: 'Recordar',
-              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              onTap: onSendReminder,
             ),
           ],
         ),
         endActionPane: ActionPane(
           motion: const ScrollMotion(),
           children: [
-            SlidableAction(
-              onPressed: (_) => _showDeleteConfirmation(context),
-              backgroundColor: AppTheme.lightTheme.colorScheme.error,
-              foregroundColor: AppTheme.lightTheme.colorScheme.onError,
+            _actionButton(
+              context,
+              color: theme.colorScheme.error,
               icon: Icons.delete,
               label: 'Eliminar',
-              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              onTap: () => _showDeleteConfirmation(context),
             ),
           ],
         ),
         child: Card(
           color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF2C2C2E) // gris más claro y contrastado en modo oscuro
-              : AppTheme.lightTheme.colorScheme.surface,
+              ? const Color(0xFF2C2C2E)
+              : theme.colorScheme.surface,
           elevation: AppTheme.elevationLow,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
           ),
           child: InkWell(
+            borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
             onTap: onTap,
             onLongPress: () => _showContextMenu(context),
-            borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
             child: Padding(
               padding: EdgeInsets.all(4.w),
-              child: Row(
-                children: [
-                 
-                  SizedBox(width: 3.w),
-                  // Appointment details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                appointment['clientName'] as String,
-                                style: AppTheme.lightTheme.textTheme.titleMedium
-                                    ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : AppTheme.lightTheme.colorScheme.onSurface,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 2.w,
-                                vertical: 0.5.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor().withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.borderRadiusSmall),
-                                border: Border.all(
-                                  color: _getStatusColor(),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                _getStatusText(),
-                                style: AppTheme.lightTheme.textTheme.labelSmall
-                                    ?.copyWith(
-                                  color: _getStatusColor(),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 1.h),
-                        Row(
-                          children: [
-                            CustomIconWidget(
-                              iconName: 'design_services',
-                              size: 4.w,
-                              color: AppTheme
-                                  .lightTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            SizedBox(width: 2.w),
-                            Expanded(
-                              child: Text(
-                                appointment['serviceType'] as String,
-                                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white70
-                                      : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 0.5.h),
-                        Row(
-                          children: [
-                            CustomIconWidget(
-                              iconName: 'access_time',
-                              size: 4.w,
-                              color: AppTheme
-                                  .lightTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            SizedBox(width: 2.w),
-                            Text(
-                              appointment['timeSlot'] as String,
-                              style: AppTheme.lightTheme.textTheme.bodyMedium
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white70
-                                    : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            SizedBox(width: 4.w),
-                            CustomIconWidget(
-                              iconName: 'euro_symbol',
-                              size: 4.w,
-                              color: AppTheme
-                                  .lightTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            SizedBox(width: 1.w),
-                            Text(
-                              appointment['price'] as String,
-                              style: AppTheme.lightTheme.textTheme.bodyMedium
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white70
-                                    : AppTheme.lightTheme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildCardContent(context, theme),
             ),
           ),
         ),
@@ -236,38 +117,149 @@ class AppointmentCardWidget extends StatelessWidget {
     );
   }
 
+  Widget _actionButton(BuildContext context,
+      {required Color color,
+      required IconData icon,
+      required String label,
+      VoidCallback? onTap}) {
+    return SlidableAction(
+      onPressed: (_) => onTap?.call(),
+      backgroundColor: color,
+      foregroundColor: Colors.white,
+      icon: icon,
+      label: label,
+      borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+    );
+  }
+
+  Widget _buildCardContent(BuildContext context, ThemeData theme) {
+    final statusColor = _getStatusColor();
+    final statusText = _getStatusText();
+
+    return Row(
+      children: [
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cliente + Estado
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      appointment['clientName'] ?? 'Cliente',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.borderRadiusSmall),
+                      border: Border.all(color: statusColor),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: statusColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 1.h),
+
+              // Tipo de servicio
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'design_services',
+                    size: 4.w,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: 2.w),
+                  Expanded(
+                    child: Text(
+                      appointment['serviceType'] ?? 'Servicio no especificado',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 0.5.h),
+
+              // Hora y precio
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'access_time',
+                    size: 4.w,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: 2.w),
+                  Text(
+                    appointment['timeSlot'] ?? '--:--',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(width: 4.w),
+                  CustomIconWidget(
+                    iconName: 'euro_symbol',
+                    size: 4.w,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: 1.w),
+                  Text(
+                    appointment['price'] ?? '0€',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text(
-            'Confirmar eliminación',
-            style: AppTheme.lightTheme.textTheme.titleLarge,
-          ),
+          title: const Text('Confirmar eliminación'),
           content: Text(
-            '¿Estás seguro de que deseas eliminar esta cita con ${appointment['clientName']}? Esta acción no se puede deshacer.',
-            style: AppTheme.lightTheme.textTheme.bodyMedium,
+            '¿Deseas eliminar la cita con ${appointment['clientName']}?',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancelar',
-                style: TextStyle(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onDelete?.call();
-              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.lightTheme.colorScheme.error,
-                foregroundColor: AppTheme.lightTheme.colorScheme.onError,
               ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                onDelete?.call();
+              },
               child: const Text('Eliminar'),
             ),
           ],
@@ -279,95 +271,68 @@ class AppointmentCardWidget extends StatelessWidget {
   void _showContextMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      backgroundColor: AppTheme.lightTheme.colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.borderRadiusLarge),
-        ),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.borderRadiusLarge)),
       ),
-      builder: (BuildContext context) {
-        return Container(
+      builder: (BuildContext sheetContext) {
+        return Padding(
           padding: EdgeInsets.all(4.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Wrap(
             children: [
-              Container(
-                width: 12.w,
-                height: 0.5.h,
-                decoration: BoxDecoration(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.borderRadiusSmall),
+              Center(
+                child: Container(
+                  width: 10.w,
+                  height: 0.6.h,
+                  margin: EdgeInsets.only(bottom: 1.5.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
-              SizedBox(height: 2.h),
-              Text(
-                'Opciones de cita',
-                style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 2.h),
               ListTile(
-                leading: CustomIconWidget(
-                  iconName: 'visibility',
-                  color: AppTheme.lightTheme.colorScheme.primary,
-                  size: 6.w,
-                ),
+                leading: const Icon(Icons.visibility_outlined),
                 title: const Text('Ver detalles'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   onTap?.call();
                 },
               ),
               ListTile(
-                leading: CustomIconWidget(
-                  iconName: 'edit',
-                  color: AppTheme.lightTheme.colorScheme.primary,
-                  size: 6.w,
-                ),
+                leading: const Icon(Icons.edit_outlined),
                 title: const Text('Editar cita'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   onEdit?.call();
                 },
               ),
               ListTile(
-                leading: CustomIconWidget(
-                  iconName: 'notifications',
-                  color: AppTheme.infoColor,
-                  size: 6.w,
-                ),
+                leading: const Icon(Icons.notifications_active_outlined),
                 title: const Text('Enviar recordatorio'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   onSendReminder?.call();
                 },
               ),
               ListTile(
-                leading: CustomIconWidget(
-                  iconName: 'cancel',
-                  color: AppTheme.warningColor,
-                  size: 6.w,
-                ),
+                leading: const Icon(Icons.cancel_outlined),
                 title: const Text('Cancelar cita'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   onCancel?.call();
                 },
               ),
               ListTile(
-                leading: CustomIconWidget(
-                  iconName: 'delete',
-                  color: AppTheme.lightTheme.colorScheme.error,
-                  size: 6.w,
-                ),
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
                 title: const Text('Eliminar cita'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showDeleteConfirmation(context);
                 },
               ),
-              SizedBox(height: 2.h),
             ],
           ),
         );

@@ -6,6 +6,7 @@ import 'package:sizer/sizer.dart';
 
 import 'firebase_options.dart';
 import 'screens/admin_login_screen.dart';
+ import 'layout/main_layout.dart';
 import 'screens/appointment_dashboard.dart';
 import 'screens/settings_management_screen.dart';
 import 'core/app_export.dart'; // si tu AppTheme está ahí
@@ -57,15 +58,16 @@ class TattooBookerApp extends StatelessWidget {
           ],
 
           // ✅ Define la pantalla inicial según sesión activa
-          home: sessionActive
-              ? const AppointmentDashboard()
-              : const AdminLoginScreen(),
+           home: sessionActive
+               ? const MainLayout()
+               : const AdminLoginScreen(),
 
           // ✅ Rutas limpias y consistentes
           routes: {
             '/appointment-dashboard': (_) => const AppointmentDashboard(),
             '/admin-login-screen': (_) => const AdminLoginScreen(),
             '/settings-management': (_) => const SettingsManagementScreen(),
+             '/main': (_) => const MainLayout(),
           },
         );
       },

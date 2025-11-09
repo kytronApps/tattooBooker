@@ -11,7 +11,8 @@ class CalendarManagementScreen extends StatefulWidget {
   const CalendarManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<CalendarManagementScreen> createState() => _CalendarManagementScreenState();
+  State<CalendarManagementScreen> createState() =>
+      _CalendarManagementScreenState();
 }
 
 class _CalendarManagementScreenState extends State<CalendarManagementScreen> {
@@ -67,7 +68,7 @@ class _CalendarManagementScreenState extends State<CalendarManagementScreen> {
     return _confirmedAppointments[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
-  Future<void> _syncAppointmentsToCalendar() async {
+  Future<void> syncAppointmentsToCalendar() async {
     setState(() => _isSyncing = true);
     try {
       for (var entry in _confirmedAppointments.entries) {
@@ -97,7 +98,8 @@ class _CalendarManagementScreenState extends State<CalendarManagementScreen> {
             );
 
             await _calendarService.addAppointmentToCalendar(
-              title: '${appointment['clientName']} - ${appointment['serviceType']}',
+              title:
+                  '${appointment['clientName']} - ${appointment['serviceType']}',
               description: 'Teléfono: ${appointment['phone']}',
               startTime: start,
               endTime: end,
@@ -126,112 +128,102 @@ class _CalendarManagementScreenState extends State<CalendarManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      
-      backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(4.w),
-                  child: TableCalendar(
-                    firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: _focusedDay,
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                    },
-                    eventLoader: _getAppointmentsForDay,
-                    calendarStyle: CalendarStyle(
-                      markerDecoration: BoxDecoration(
-                        color: AppTheme.lightTheme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      todayDecoration: BoxDecoration(
-                        color: AppTheme.lightTheme.colorScheme.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: AppTheme.lightTheme.colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    headerStyle: HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                      titleTextStyle: AppTheme.lightTheme.textTheme.titleMedium!.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.lightTheme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+        child: Column(
+          children: [
+            // Calendario
+            TableCalendar(
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              eventLoader: _getAppointmentsForDay,
+              calendarStyle: CalendarStyle(
+                markerDecoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.primary,
+                  shape: BoxShape.circle,
                 ),
-                Divider(thickness: 1, height: 2.h),
-                Expanded(
-                  child: _selectedDay == null ||
-                          _getAppointmentsForDay(_selectedDay!).isEmpty
-                      ? Center(
-                          child: Text(
-                            'No hay citas confirmadas para este día',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium,
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 4.w),
-                          itemCount: _getAppointmentsForDay(_selectedDay!).length,
-                          itemBuilder: (context, index) {
-                            final appointment =
-                                _getAppointmentsForDay(_selectedDay!)[index];
-                            return Card(
-                              margin: EdgeInsets.symmetric(vertical: 1.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListTile(
-                                leading: Icon(Icons.schedule,
-                                    color: AppTheme.lightTheme.colorScheme.primary),
-                                title: Text(appointment['clientName'] ?? 'Sin nombre'),
-                                subtitle: Text(
-                                  '${appointment['serviceType'] ?? ''} · ${appointment['timeSlot'] ?? ''}',
-                                ),
-                                trailing: Text(
-                                  '${appointment['price'] ?? ''}€',
-                                  style: TextStyle(
-                                    color: AppTheme.lightTheme.colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                todayDecoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.secondary,
+                  shape: BoxShape.circle,
                 ),
-                Padding(
-                  padding: EdgeInsets.all(4.w),
-                  child: ElevatedButton.icon(
-                    onPressed: _isSyncing ? null : _syncAppointmentsToCalendar,
-                    icon: const Icon(Icons.sync),
-                    label: Text(
-                      _isSyncing ? 'Sincronizando...' : 'Sincronizar con Calendario',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 6.w),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.borderRadiusMedium),
-                      ),
-                    ),
-                  ),
+                selectedDecoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
                 ),
-              ],
+              ),
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle:
+                    AppTheme.lightTheme.textTheme.titleMedium!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.lightTheme.colorScheme.onSurface,
+                ),
+              ),
             ),
+
+            Divider(thickness: 1, height: 3.h),
+
+            // Lista de citas del día
+            Expanded(
+              child: _selectedDay == null ||
+                      _getAppointmentsForDay(_selectedDay!).isEmpty
+                  ? Center(
+                      child: Text(
+                        'No hay citas confirmadas para este día',
+                        style: AppTheme.lightTheme.textTheme.bodyMedium,
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.only(bottom: 2.h),
+                      itemCount:
+                          _getAppointmentsForDay(_selectedDay!).length,
+                      itemBuilder: (context, index) {
+                        final appointment =
+                            _getAppointmentsForDay(_selectedDay!)[index];
+                        return Card(
+                          margin: EdgeInsets.symmetric(vertical: 0.8.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.schedule,
+                              color: AppTheme.lightTheme.colorScheme.primary,
+                            ),
+                            title: Text(appointment['clientName'] ?? 'Sin nombre'),
+                            subtitle: Text(
+                              '${appointment['serviceType'] ?? ''} · ${appointment['timeSlot'] ?? ''}',
+                            ),
+                            trailing: Text(
+                              '${appointment['price'] ?? ''}€',
+                              style: TextStyle(
+                                color: AppTheme
+                                    .lightTheme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
