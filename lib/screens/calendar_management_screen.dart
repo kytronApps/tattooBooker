@@ -8,7 +8,7 @@ import '../../core/app_export.dart';
 import '../services/calendar_sync_service.dart';
 
 class CalendarManagementScreen extends StatefulWidget {
-  const CalendarManagementScreen({Key? key}) : super(key: key);
+  const CalendarManagementScreen({super.key});
 
   @override
   State<CalendarManagementScreen> createState() =>

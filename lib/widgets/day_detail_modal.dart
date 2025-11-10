@@ -12,14 +12,14 @@ class DayDetailModal extends StatefulWidget {
   final Function(Map<String, dynamic>) onAppointmentTap;
 
   const DayDetailModal({
-    Key? key,
+    super.key,
     required this.selectedDate,
     required this.appointments,
     required this.startTimes,
     required this.endTimes,
     required this.workingDays,
     required this.onAppointmentTap,
-  }) : super(key: key);
+  });
 
   @override
   State<DayDetailModal> createState() => _DayDetailModalState();
@@ -376,7 +376,7 @@ class _DayDetailModalState extends State<DayDetailModal> {
         else
           ...dayAppointments
               .map((appointment) => _buildAppointmentItem(appointment))
-              .toList(),
+              ,
       ],
     );
   }

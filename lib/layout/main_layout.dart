@@ -6,7 +6,7 @@ import '../screens/calendar_management_screen.dart';
 import '../screens/settings_management_screen.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({Key? key}) : super(key: key);
+  const MainLayout({super.key});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();

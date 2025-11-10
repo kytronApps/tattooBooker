@@ -11,13 +11,13 @@ class SearchBarWidget extends StatefulWidget {
   final VoidCallback? onToggle;
 
   const SearchBarWidget({
-    Key? key,
+    super.key,
     this.hintText = 'Buscar por cliente o servicio...',
     this.onChanged,
     this.onClear,
     this.isExpanded = false,
     this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   State<SearchBarWidget> createState() => _SearchBarWidgetState();

@@ -12,11 +12,11 @@ class AppointmentCardWidget extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const AppointmentCardWidget({
-    Key? key,
+    super.key,
     required this.appointment,
     this.onCancel,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor() {
     final status = (appointment['status'] ?? '').toLowerCase();

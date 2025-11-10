@@ -6,7 +6,6 @@ import 'package:sizer/sizer.dart';
 
 import 'firebase_options.dart';
 import 'core/app_export.dart';
-import 'routes/app_routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

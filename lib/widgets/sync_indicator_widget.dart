@@ -10,12 +10,12 @@ class SyncIndicatorWidget extends StatefulWidget {
   final VoidCallback? onRetrySync;
 
   const SyncIndicatorWidget({
-    Key? key,
+    super.key,
     required this.isOnline,
     this.isSyncing = false,
     this.lastSyncTime,
     this.onRetrySync,
-  }) : super(key: key);
+  });
 
   @override
   State<SyncIndicatorWidget> createState() => _SyncIndicatorWidgetState();

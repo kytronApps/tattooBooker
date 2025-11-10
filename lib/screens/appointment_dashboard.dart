@@ -14,9 +14,10 @@ import '../widgets/empty_state_widget.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/notifications_dropdown_widget.dart';
 import '../screens/calendar_management_screen.dart';
+import 'links_management_screen.dart';
 
 class AppointmentDashboard extends StatefulWidget {
-  const AppointmentDashboard({Key? key}) : super(key: key);
+  const AppointmentDashboard({super.key});
 
   @override
   State<AppointmentDashboard> createState() => _AppointmentDashboardState();
@@ -466,7 +467,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   ],
                 ),
                 const CalendarManagementScreen(),
-                const Center(child: Text("Gestión de Links (próximamente)")),
+                const LinksManagementScreen(),
                 const SettingsManagementScreen(),
               ],
             ),

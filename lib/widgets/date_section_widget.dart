@@ -9,11 +9,11 @@ class DateSectionWidget extends StatelessWidget {
   final int appointmentCount;
 
   const DateSectionWidget({
-    Key? key,
+    super.key,
     required this.date,
     required this.dayOfWeek,
     required this.appointmentCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

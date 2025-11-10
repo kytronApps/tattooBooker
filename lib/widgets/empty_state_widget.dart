@@ -11,14 +11,14 @@ class EmptyStateWidget extends StatelessWidget {
   final String? illustrationUrl;
 
   const EmptyStateWidget({
-    Key? key,
+    super.key,
     this.title = 'No hay citas programadas',
     this.subtitle =
         'Comienza creando tu primera cita para gestionar las reservas de tu estudio.',
     this.buttonText = 'Crear Primera Cita',
     this.onButtonPressed,
     this.illustrationUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ import '../widgets/working_hours_widget.dart';
 import '../widgets/blocked_dates_widget.dart';
 
 class SettingsManagementScreen extends StatefulWidget {
-  const SettingsManagementScreen({Key? key}) : super(key: key);
+  const SettingsManagementScreen({super.key});
 
   @override
   State<SettingsManagementScreen> createState() =>

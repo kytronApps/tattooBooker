@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
+import 'package:flutter/services.dart';
+import '../core/app_export.dart';
+import '../widgets/custom_snackbar.dart';
+import '../services/booking_links_service.dart';
 
 class LinksManagementScreen extends StatefulWidget {
   const LinksManagementScreen({super.key});
@@ -10,65 +14,184 @@ class LinksManagementScreen extends StatefulWidget {
 }
 
 class _LinksManagementScreenState extends State<LinksManagementScreen> {
-  final _firestore = FirebaseFirestore.instance;
-  final _uuid = const Uuid();
-  bool _loading = false;
-
-  Future<void> _generateLink() async {
-    setState(() => _loading = true);
-    final id = _uuid.v4();
-    final url = "https://kytron-apps.web.app/book";
-
-    await _firestore.collection('links').doc(id).set({
-      'url': url,
-      'createdAt': DateTime.now().toIso8601String(),
-      'active': true,
-    });
-
-    setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Link generado: $url')),
-    );
-  }
-
-  Future<void> _revokeLink(String id) async {
-    await _firestore.collection('links').doc(id).update({'active': false});
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Link revocado')),
-    );
-  }
+  final BookingLinksService _service = BookingLinksService();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Gestión de Links')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('links').snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snapshot.data!.docs;
-
-          return ListView(
-            children: docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return ListTile(
-                title: Text(data['url']),
-                subtitle: Text(data['active'] ? 'Activo' : 'Revocado'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                  onPressed: () => _revokeLink(doc.id),
+    return Padding(
+      padding: EdgeInsets.all(4.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Allow title to shrink and use ellipsis on small screens
+              Expanded(
+                child: Text(
+                  'Generador de Links',
+                  style: AppTheme.lightTheme.textTheme.headlineSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              );
-            }).toList(),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _generateLink,
-        child: _loading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Icon(Icons.add),
+              ),
+              SizedBox(width: 3.w),
+              // Constrain button so it doesn't force the Row to overflow on small widths
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 46.w),
+                child: ElevatedButton.icon(
+                  onPressed: _createNewLink,
+                  icon: const Icon(Icons.add_link, size: 18),
+                  label: const Text('Generar link'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+                    padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                    textStyle: AppTheme.lightTheme.textTheme.labelLarge,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _service.linksStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No hay links generados aún', style: AppTheme.lightTheme.textTheme.bodyLarge));
+                }
+
+                final docs = snapshot.data!.docs;
+
+                return ListView.separated(
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 1.h),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final id = doc.id;
+                    final active = data['active'] == true || data['active'] == 'true';
+                    final createdAt = data['createdAt'] ?? '';
+                    final uses = data['uses'] ?? 0;
+
+                    final linkUrl = 'https://kytron-apps.web.app/book/$id';
+
+                    return Card(
+                      elevation: AppTheme.elevationLow,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium)),
+                      child: Padding(
+                        padding: EdgeInsets.all(3.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(linkUrl, overflow: TextOverflow.ellipsis, style: AppTheme.lightTheme.textTheme.bodySmall),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: active ? Colors.green.shade50 : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(active ? 'Activo' : 'Revocado', style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(color: active ? Colors.green : Colors.grey.shade600)),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 1.h),
+                            Row(
+                              children: [
+                                Text('Generado: ', style: AppTheme.lightTheme.textTheme.bodySmall),
+                                SizedBox(width: 2.w),
+                                Text(createdAt.toString(), style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(color: AppTheme.lightTheme.colorScheme.onSurfaceVariant)),
+                              ],
+                            ),
+                            SizedBox(height: 1.h),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text('Usos: $uses', style: AppTheme.lightTheme.textTheme.labelSmall),
+                                SizedBox(width: 3.w),
+                                IconButton(
+                                  tooltip: 'Copiar link',
+                                  onPressed: () async {
+                                    await Clipboard.setData(ClipboardData(text: linkUrl));
+                                    CustomSnackBar.show(context, message: 'Link copiado al portapapeles');
+                                  },
+                                  icon: const Icon(Icons.copy_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: active ? 'Revocar' : 'Activar',
+                                  onPressed: () async {
+                                    await _service.toggleActive(id, !active);
+                                  },
+                                  icon: Icon(active ? Icons.block_outlined : Icons.check_circle_outline),
+                                  color: active ? Colors.orange : Colors.green,
+                                ),
+                                IconButton(
+                                  tooltip: 'Eliminar',
+                                  onPressed: () async {
+                                    final ok = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Eliminar link'),
+                                        content: const Text('¿Eliminar este link? Esta acción no se puede deshacer.'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar')),
+                                        ],
+                                      ),
+                                    );
+                                    if (ok == true) await _service.deleteLink(id);
+                                  },
+                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
+
+Future<void> _createNewLink() async {
+  try {
+    final docRef = await _service.createLink();
+    final doc = await docRef.get();
+    final token = doc.data()?['editToken'];
+    final linkUrl = 'https://kytron-apps.web.app/book/$token';
+
+    CustomSnackBar.show(context, message: 'Link generado');
+    await Clipboard.setData(ClipboardData(text: linkUrl));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Link generado'),
+        content: SelectableText(linkUrl),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+        ],
+      ),
+    );
+  } catch (e) {
+    debugPrint('Error generando link: $e');
+    CustomSnackBar.show(context, message: 'Error generando link', isError: true);
+  }
+}
 }

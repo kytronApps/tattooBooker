@@ -10,12 +10,12 @@ class DashboardHeaderWidget extends StatelessWidget {
   final VoidCallback? onNotificationTap;
 
   const DashboardHeaderWidget({
-    Key? key,
+    super.key,
     required this.studioName,
     required this.currentDate,
     this.notificationCount = 0,
     this.onNotificationTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
