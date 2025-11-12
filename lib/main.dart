@@ -7,6 +7,10 @@ import 'package:sizer/sizer.dart';
 import 'firebase_options.dart';
 import 'core/app_export.dart';
 
+// ✅ Key global para mostrar SnackBars en toda la app
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,7 +26,6 @@ Future<void> main() async {
       debugPrint("ℹ️ Firebase ya estaba inicializado");
     }
   } catch (e) {
-    // Evitar log verbose de duplicate-app: ya existe la instancia por hot-reload u otra inicialización
     debugPrint("⚠️ Firebase init skipped (already initialized)");
   }
 
@@ -44,6 +47,10 @@ class TattooBookerApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'TattooBooker',
           theme: AppTheme.lightTheme,
+
+          // ✅ Clave global del ScaffoldMessenger (solución definitiva al crash)
+          scaffoldMessengerKey: rootScaffoldMessengerKey,
+
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

@@ -4,7 +4,7 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../widgets/working_hours_widget.dart';
 import '../widgets/blocked_dates_widget.dart';
-
+import '../widgets/custom_snackbar.dart';
 class SettingsManagementScreen extends StatefulWidget {
   const SettingsManagementScreen({super.key});
 
@@ -49,7 +49,8 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
       _userId = userDoc.id;
       final data = userDoc.data();
 
-      final workingDaysData = data['workingDays'] as Map<String, dynamic>? ?? {};
+      final workingDaysData =
+          data['workingDays'] as Map<String, dynamic>? ?? {};
       _workingDays = workingDaysData.map((k, v) => MapEntry(k, v == true));
 
       final startTimesData = data['startTimes'] as Map<String, dynamic>? ?? {};
@@ -79,7 +80,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         'Jueves',
         'Viernes',
         'Sábado',
-        'Domingo'
+        'Domingo',
       ];
 
       for (final day in orderedDays) {
@@ -113,10 +114,18 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     try {
       final dataToUpdate = {
         'workingDays': _workingDays,
-        'startTimes': _startTimes.map((k, v) =>
-            MapEntry(k, '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}')),
-        'endTimes': _endTimes.map((k, v) =>
-            MapEntry(k, '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}')),
+        'startTimes': _startTimes.map(
+          (k, v) => MapEntry(
+            k,
+            '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}',
+          ),
+        ),
+        'endTimes': _endTimes.map(
+          (k, v) => MapEntry(
+            k,
+            '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}',
+          ),
+        ),
         'blockedDates': _blockedDates.map((d) => d.toIso8601String()).toList(),
       };
 
@@ -142,9 +151,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
           SnackBar(
             content: Text(
               'Error al guardar los cambios',
-              style: TextStyle(
-                color: AppTheme.lightTheme.colorScheme.onError,
-              ),
+              style: TextStyle(color: AppTheme.lightTheme.colorScheme.onError),
             ),
             backgroundColor: AppTheme.lightTheme.colorScheme.error,
           ),
@@ -230,8 +237,8 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),
         labelColor: AppTheme.lightTheme.colorScheme.onPrimary,
-        unselectedLabelColor:
-            AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6),
+        unselectedLabelColor: AppTheme.lightTheme.colorScheme.onSurface
+            .withOpacity(0.6),
         tabs: const [
           Tab(text: 'Horarios'),
           Tab(text: 'Bloqueados'),
@@ -282,6 +289,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
   }
 
   // 🔹 Tab Histórico
+  // 🔹 Tab Histórico
   Widget _buildHistoryTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
@@ -300,25 +308,23 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history_rounded,
-                      size: 40.sp,
-                      color:
-                          AppTheme.lightTheme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.history_rounded,
+                    size: 40.sp,
+                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                  ),
                   SizedBox(height: 2.h),
                   Text(
                     'Sin citas en el histórico',
-                    style:
-                        AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                      color:
-                          AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   SizedBox(height: 1.h),
                   Text(
                     'Las citas canceladas aparecerán aquí automáticamente.',
                     textAlign: TextAlign.center,
-                    style:
-                        AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                       color: AppTheme.lightTheme.colorScheme.onSurfaceVariant
                           .withOpacity(0.7),
                     ),
@@ -336,6 +342,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
+            final id = docs[index].id;
             final client = data['clientName'] ?? 'Cliente desconocido';
             final service = data['serviceType'] ?? 'Servicio';
             final time = data['timeSlot'] ?? '--:--';
@@ -344,8 +351,9 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
             return Card(
               margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(AppTheme.borderRadiusMedium),
+                borderRadius: BorderRadius.circular(
+                  AppTheme.borderRadiusMedium,
+                ),
               ),
               elevation: AppTheme.elevationLow,
               child: Padding(
@@ -353,24 +361,75 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      client,
-                      style: AppTheme.lightTheme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                    // 🔸 Cabecera (nombre y eliminar)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            client,
+                            style: AppTheme.lightTheme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                          tooltip: 'Eliminar del histórico',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Eliminar cita'),
+                                content: const Text(
+                                  '¿Deseas eliminar esta cita del histórico?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Eliminar'),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              await _firestore
+                                  .collection('appointments_history')
+                                  .doc(id)
+                                  .delete();
+
+                              // ✅ Usa el Snackbar global (no depende del context)
+                              CustomSnackBar.show(
+                                context,
+                                message: 'Cita eliminada del histórico',
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ),
+
                     SizedBox(height: 0.5.h),
                     Row(
                       children: [
-                        Icon(Icons.design_services_rounded,
-                            color: AppTheme.lightTheme.colorScheme
-                                .onSurfaceVariant,
-                            size: 4.w),
+                        Icon(
+                          Icons.design_services_rounded,
+                          color:
+                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                          size: 4.w,
+                        ),
                         SizedBox(width: 2.w),
                         Expanded(
                           child: Text(
                             service,
-                            style:
-                                AppTheme.lightTheme.textTheme.bodyMedium,
+                            style: AppTheme.lightTheme.textTheme.bodyMedium,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -379,23 +438,29 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
                     SizedBox(height: 0.5.h),
                     Row(
                       children: [
-                        Icon(Icons.access_time,
-                            color: AppTheme.lightTheme.colorScheme
-                                .onSurfaceVariant,
-                            size: 4.w),
+                        Icon(
+                          Icons.access_time,
+                          color:
+                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                          size: 4.w,
+                        ),
                         SizedBox(width: 2.w),
-                        Text(time,
-                            style:
-                                AppTheme.lightTheme.textTheme.bodyMedium),
+                        Text(
+                          time,
+                          style: AppTheme.lightTheme.textTheme.bodyMedium,
+                        ),
                         SizedBox(width: 3.w),
-                        Icon(Icons.calendar_today,
-                            color: AppTheme.lightTheme.colorScheme
-                                .onSurfaceVariant,
-                            size: 4.w),
+                        Icon(
+                          Icons.calendar_today,
+                          color:
+                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                          size: 4.w,
+                        ),
                         SizedBox(width: 2.w),
-                        Text(date,
-                            style:
-                                AppTheme.lightTheme.textTheme.bodyMedium),
+                        Text(
+                          date,
+                          style: AppTheme.lightTheme.textTheme.bodyMedium,
+                        ),
                       ],
                     ),
                   ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../core/app_export.dart'; 
+import '../../core/app_export.dart';
+import '../../main.dart'; // 👈 importamos la key global
 
 class CustomSnackBar {
   static void show(
@@ -46,15 +47,14 @@ class CustomSnackBar {
       ),
     );
 
-    // Use maybeOf to avoid exceptions when the context is no longer active
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    // ✅ Usamos el ScaffoldMessenger global en lugar del contexto local
+    final messenger = rootScaffoldMessengerKey.currentState;
     if (messenger != null) {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(snackBar);
     } else {
-      // Fallback: log the message in debug mode
-      debugPrint('SnackBar requested but no ScaffoldMessenger found: $message');
+      debugPrint('⚠️ SnackBar requested but no global messenger found: $message');
     }
   }
 }
