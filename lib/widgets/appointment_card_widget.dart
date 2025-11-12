@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/appointment_actions_service.dart';
 import '../../widgets/appointment_edit_modal.dart';
 
