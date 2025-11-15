@@ -87,7 +87,8 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                         data['active'] == true || data['active'] == 'true';
                     final createdAt = data['createdAt'] ?? '';
                     final uses = data['uses'] ?? 0;
-                    final linkUrl = 'https://kytron-apps.web.app/book/$id';
+                    final token = data['editToken'] ?? id;
+                    final linkUrl = 'https://kytron-apps.web.app/book/$token';
 
                     return Card(
                       elevation: AppTheme.elevationLow,
@@ -193,7 +194,6 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                                 ),
 
                                 // Revocar / activar
-                                // Revocar / activar link
                                 IconButton(
                                   tooltip: active ? 'Revocar' : 'Activar',
                                   onPressed: () async {
@@ -309,7 +309,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
     );
   }
 
-  /// 🔹 Crea un nuevo link con token único
+  /// 🔹 Crea un nuevo link usando el servicio BookingLinksService
   Future<void> _createNewLink() async {
     try {
       final docRef = await _service.createLink();
@@ -320,6 +320,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
       if (mounted) {
         CustomSnackBar.show(context, message: 'Link generado correctamente');
       }
+
       await Clipboard.setData(ClipboardData(text: linkUrl));
 
       if (mounted) {
