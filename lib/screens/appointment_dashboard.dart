@@ -46,6 +46,13 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    _tabController.addListener(() {
+      if (_tabController.index == 2) {
+        setState(() {});
+      }
+    });
+
     _listenAppointmentsRealtime();
     _simulateNetworkStatus();
   }
@@ -538,7 +545,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   ],
                 ),
                 const CalendarManagementScreen(),
-                const LinksManagementScreen(),
+                LinksManagementScreen(),
                 const SettingsManagementScreen(),
               ],
             ),

@@ -33,7 +33,6 @@ class BookingLinksService {
   Stream<QuerySnapshot<Map<String, dynamic>>> linksStream() {
     return _firestore
         .collection(linksCollection)
-        .where('active', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
@@ -99,8 +98,9 @@ class BookingLinksService {
 
   /// 🔹 Mover cita a appointments_history
   Future<void> moveAppointmentToHistory(String appointmentId) async {
-    final appointmentRef =
-        _firestore.collection(appointmentsCollection).doc(appointmentId);
+    final appointmentRef = _firestore
+        .collection(appointmentsCollection)
+        .doc(appointmentId);
     final snapshot = await appointmentRef.get();
 
     if (snapshot.exists) {
@@ -118,9 +118,6 @@ class BookingLinksService {
 
   /// 🔹 Eliminar cita del histórico
   Future<void> deleteFromHistory(String historyId) async {
-    await _firestore
-        .collection('appointments_history')
-        .doc(historyId)
-        .delete();
+    await _firestore.collection('appointments_history').doc(historyId).delete();
   }
 }

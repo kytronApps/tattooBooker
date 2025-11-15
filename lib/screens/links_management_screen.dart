@@ -83,8 +83,9 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                     final doc = docs[index];
                     final data = doc.data();
                     final id = doc.id;
-                    final active =
-                        data['active'] == true || data['active'] == 'true';
+                    final active = data['active'] is bool
+                        ? data['active'] == true
+                        : data['active'].toString() == 'true';
                     final createdAt = data['createdAt'] ?? '';
                     final uses = data['uses'] ?? 0;
                     final token = data['editToken'] ?? id;
