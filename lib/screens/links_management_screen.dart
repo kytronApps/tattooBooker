@@ -7,7 +7,6 @@ import '../widgets/custom_snackbar.dart';
 import '../services/booking_links_service.dart';
 
 class LinksManagementScreen extends StatefulWidget {
-  // 🔹 Stream opcional desde el padre
   final Stream<QuerySnapshot<Map<String, dynamic>>>? linksStream;
   
   const LinksManagementScreen({
@@ -21,14 +20,11 @@ class LinksManagementScreen extends StatefulWidget {
 
 class _LinksManagementScreenState extends State<LinksManagementScreen> {
   final BookingLinksService _service = BookingLinksService();
-  
-  // 🔹 Stream lazy - usa el del padre o crea uno nuevo
   late Stream<QuerySnapshot<Map<String, dynamic>>> _stream;
 
   @override
   void initState() {
     super.initState();
-    // Usar el stream del padre si existe, sino crear uno nuevo
     _stream = widget.linksStream ?? _service.linksStream();
   }
 
@@ -39,7 +35,6 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -73,12 +68,10 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
 
           SizedBox(height: 2.h),
 
-          // 🔹 Lista de links
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _stream, // 👈 USA EL STREAM CACHEADO
+              stream: _stream,
               builder: (context, snapshot) {
-                // 🔹 MEJORA: No mostrar loader si ya hay datos en caché
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -122,7 +115,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 🔹 URL + estado
+                            // URL + estado
                             Row(
                               children: [
                                 Expanded(
@@ -166,7 +159,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
 
                             SizedBox(height: 1.h),
 
-                            // 🔹 Fecha de creación
+                            // Fecha de creación
                             Row(
                               children: [
                                 Text(
@@ -197,7 +190,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
 
                             SizedBox(height: 1.h),
 
-                            // 🔹 Acciones
+                            // Acciones - SIN BOTÓN ELIMINAR
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -283,48 +276,6 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                                   ),
                                   color: active ? Colors.orange : Colors.green,
                                 ),
-
-                                // Eliminar
-                                IconButton(
-                                  tooltip: 'Eliminar',
-                                  onPressed: () async {
-                                    final ok = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('Eliminar link'),
-                                        content: const Text(
-                                          '¿Eliminar este link? Esta acción no se puede deshacer.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, false),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, true),
-                                            child: const Text('Eliminar'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (ok == true) {
-                                      await _service.deleteLink(id);
-                                      if (mounted) {
-                                        CustomSnackBar.show(
-                                          context,
-                                          message: 'Link eliminado',
-                                        );
-                                      }
-                                    }
-                                  },
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.redAccent,
-                                  ),
-                                ),
                               ],
                             ),
                           ],
@@ -341,7 +292,6 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
     );
   }
 
-  /// 🔹 Crea un nuevo link usando el servicio BookingLinksService
   Future<void> _createNewLink() async {
     try {
       final docRef = await _service.createLink();
