@@ -45,6 +45,11 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
     if (widget.isExpanded) {
       _animationController.forward();
     }
+
+    // 🔹 Escuchar cambios en el TextField para reconstruir el widget
+    _textController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -53,12 +58,22 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
     if (widget.isExpanded != oldWidget.isExpanded) {
       if (widget.isExpanded) {
         _animationController.forward();
-        _focusNode.requestFocus();
+        // 🔹 FIX: Esperar al siguiente frame para pedir el foco
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _focusNode.requestFocus();
+          }
+        });
       } else {
         _animationController.reverse();
         _focusNode.unfocus();
         _textController.clear();
-        widget.onClear?.call();
+
+        if (widget.onClear != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) widget.onClear!();
+          });
+        }
       }
     }
   }
@@ -71,27 +86,44 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
     super.dispose();
   }
 
+  // 🔹 FIX: Método seguro para manejar el toggle
+  void _handleToggle() {
+    if (mounted) {
+      widget.onToggle?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       child: Row(
         children: [
+          // 🔹 Barra colapsada
           if (!widget.isExpanded)
             Expanded(
               child: GestureDetector(
-                onTap: widget.onToggle,
+                onTap: _handleToggle, // 🔹 FIX: Llamada directa
                 child: Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 4.w,
+                    vertical: 1.8.h,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.lightTheme.colorScheme.surface,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.borderRadiusLarge),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppTheme.lightTheme.colorScheme.outline,
+                      color: AppTheme.lightTheme.colorScheme.outline
+                          .withOpacity(.2),
                       width: 1,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -101,12 +133,18 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
                         size: 5.w,
                       ),
                       SizedBox(width: 3.w),
-                      Text(
-                        widget.hintText,
-                        style:
-                            AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                          color:
-                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      Expanded(
+                        // 🔹 FIX: Envolver en Expanded para evitar overflow
+                        child: Text(
+                          widget.hintText,
+                          style: AppTheme.lightTheme.textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppTheme
+                                    .lightTheme
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -114,20 +152,29 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
                 ),
               ),
             ),
+
+          // 🔹 Barra expandida
           if (widget.isExpanded)
             Expanded(
               child: SizeTransition(
                 sizeFactor: _animation,
                 axis: Axis.horizontal,
+                axisAlignment: -1, // 🔹 Animar desde la izquierda
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppTheme.lightTheme.colorScheme.surface,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.borderRadiusLarge),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: AppTheme.lightTheme.colorScheme.primary,
                       width: 2,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: TextField(
                     controller: _textController,
@@ -152,7 +199,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
                               icon: CustomIconWidget(
                                 iconName: 'clear',
                                 color: AppTheme
-                                    .lightTheme.colorScheme.onSurfaceVariant,
+                                    .lightTheme
+                                    .colorScheme
+                                    .onSurfaceVariant,
                                 size: 5.w,
                               ),
                             )
@@ -160,7 +209,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 4.w,
-                        vertical: 1.5.h,
+                        vertical: 1.8.h,
                       ),
                     ),
                     style: AppTheme.lightTheme.textTheme.bodyMedium,
@@ -168,17 +217,17 @@ class _SearchBarWidgetState extends State<SearchBarWidget>
                 ),
               ),
             ),
+
+          // 🔹 Botón cerrar (solo expandido)
           if (widget.isExpanded) ...[
             SizedBox(width: 2.w),
             GestureDetector(
-              onTap: widget.onToggle,
+              onTap: _handleToggle, // 🔹 FIX: Llamada directa
               child: Container(
-                padding: EdgeInsets.all(2.w),
+                padding: EdgeInsets.all(2.5.w),
                 decoration: BoxDecoration(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant
-                      .withValues(alpha: 0.1),
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.borderRadiusMedium),
+                  color: Colors.black.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: CustomIconWidget(
                   iconName: 'close',

@@ -445,9 +445,13 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   children: [
                     SearchBarWidget(
                       isExpanded: _isSearchExpanded,
-                      onToggle: () => setState(
-                        () => _isSearchExpanded = !_isSearchExpanded,
-                      ),
+                      onToggle: () {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) {
+      setState(() => _isSearchExpanded = !_isSearchExpanded);
+    }
+  });
+},
                       onChanged: _filterAppointments,
                       onClear: _clearSearch,
                     ),
