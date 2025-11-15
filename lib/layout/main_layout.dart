@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/app_export.dart';
 import '../screens/appointment_dashboard.dart';
+import '../screens/links_management_screen.dart';
 import '../screens/calendar_management_screen.dart';
 import '../screens/settings_management_screen.dart';
 
@@ -20,15 +21,12 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _pages = const [
     AppointmentDashboard(),
     CalendarManagementScreen(),
+    LinksManagementScreen(),
     SettingsManagementScreen(),
   ];
 
   // Títulos para cada página
-  final List<String> _titles = [
-    'Dashboard',
-    'Calendario',
-    'Ajustes'
-  ];
+  final List<String> _titles = ['Dashboard', 'Calendario', 'Links', 'Ajustes'];
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
@@ -70,10 +68,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -86,10 +81,8 @@ class _MainLayoutState extends State<MainLayout> {
             icon: Icon(Icons.calendar_month),
             label: 'Calendario',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Ajustes',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.link), label: 'Links'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ajustes'),
         ],
       ),
       floatingActionButton: _buildFabForCurrentTab(),

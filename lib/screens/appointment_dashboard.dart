@@ -424,19 +424,19 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
             notificationCount: _notifications.length,
             onNotificationTap: () => _toggleNotificationsPanel(context),
           ),
-          Container(
-            color: AppTheme.lightTheme.colorScheme.surface,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Dashboard'),
-                Tab(text: 'Calendario'),
-                Tab(text: 'Links'),
-                Tab(text: 'Ajustes'),
-              ],
-            ),
-          ),
+          // Container(
+          //   color: AppTheme.lightTheme.colorScheme.surface,
+          //   child: TabBar(
+          //     controller: _tabController,
+          //     isScrollable: true,
+          //     tabs: const [
+          //       Tab(text: 'Dashboard'),
+          //       Tab(text: 'Calendario'),
+          //       Tab(text: 'Links'),
+          //       Tab(text: 'Ajustes'),
+          //     ],
+          //   ),
+          // ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
