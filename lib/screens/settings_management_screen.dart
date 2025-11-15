@@ -313,7 +313,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
             return _historyCard(
               title: data["clientName"] ?? "Cliente",
               subtitle: data["serviceType"] ?? "Servicio",
-              date: data["date"] ?? "",
+              date: (data["date"] ?? "").toString().split("T").first,
               time: data["timeSlot"] ?? "--",
               onDelete: () async {
                 final confirm = await _confirmDelete(
