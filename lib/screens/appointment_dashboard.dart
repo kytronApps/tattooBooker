@@ -5,6 +5,7 @@ import 'package:sizer/sizer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/calendar_sync_service.dart';
 import '../services/appointment_actions_service.dart';
+import '../services/booking_links_service.dart';
 import '../screens/settings_management_screen.dart';
 import '../../core/app_export.dart';
 import '../widgets/appointment_card_widget.dart';
@@ -31,6 +32,10 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   DateTime? _lastSyncTime = DateTime.now().subtract(const Duration(minutes: 5));
   String _searchQuery = '';
 
+  // 🔹 Stream cacheado para Links
+  final BookingLinksService _linksService = BookingLinksService();
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _linksStream;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CalendarSyncService _calendarService = CalendarSyncService();
   final AppointmentActionsService _appointmentService =
@@ -46,6 +51,9 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    // 🔹 Inicializar stream de links UNA SOLA VEZ
+    _linksStream = _linksService.linksStream();
 
     _tabController.addListener(() {
       if (_tabController.index == 2) {
@@ -118,7 +126,6 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
           setState(() {
             _appointments = cleaned;
             _filteredAppointments = _applySearchFilter(cleaned, _searchQuery);
-
             _notifications = List.from(unread);
           });
         });
@@ -278,8 +285,6 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
 
     return {for (var k in sortedKeys) k: grouped[k]!};
   }
-
-  // 🔔 Mostrar / Ocultar panel de notificaciones
 
   // 🔔 Mostrar / Ocultar panel de notificaciones
   void _toggleNotificationsPanel(BuildContext context) {
@@ -545,7 +550,10 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   ],
                 ),
                 const CalendarManagementScreen(),
-                LinksManagementScreen(),
+
+                // 🔹 CAMBIO: Pasar el stream cacheado
+                LinksManagementScreen(linksStream: _linksStream),
+
                 const SettingsManagementScreen(),
               ],
             ),

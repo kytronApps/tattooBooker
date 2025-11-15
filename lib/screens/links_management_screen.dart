@@ -7,7 +7,13 @@ import '../widgets/custom_snackbar.dart';
 import '../services/booking_links_service.dart';
 
 class LinksManagementScreen extends StatefulWidget {
-  const LinksManagementScreen({super.key});
+  // 🔹 Stream opcional desde el padre
+  final Stream<QuerySnapshot<Map<String, dynamic>>>? linksStream;
+  
+  const LinksManagementScreen({
+    super.key,
+    this.linksStream,
+  });
 
   @override
   State<LinksManagementScreen> createState() => _LinksManagementScreenState();
@@ -15,6 +21,16 @@ class LinksManagementScreen extends StatefulWidget {
 
 class _LinksManagementScreenState extends State<LinksManagementScreen> {
   final BookingLinksService _service = BookingLinksService();
+  
+  // 🔹 Stream lazy - usa el del padre o crea uno nuevo
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    // Usar el stream del padre si existe, sino crear uno nuevo
+    _stream = widget.linksStream ?? _service.linksStream();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +76,11 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
           // 🔹 Lista de links
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _service.linksStream(),
+              stream: _stream, // 👈 USA EL STREAM CACHEADO
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                // 🔹 MEJORA: No mostrar loader si ya hay datos en caché
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -158,12 +176,10 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                                 ),
                                 SizedBox(width: 2.w),
                                 Expanded(
-                                  // ← AÑADE ESTO
                                   child: Text(
                                     createdAt.toString(),
-                                    maxLines: 1, // ← AÑADE ESTO
-                                    overflow:
-                                        TextOverflow.ellipsis, // ← AÑADE ESTO
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: AppTheme
                                         .lightTheme
                                         .textTheme
