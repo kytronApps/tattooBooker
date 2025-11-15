@@ -133,57 +133,39 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            _buildTabBar(),
-            SizedBox(height: 1.h),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildWorkingHoursTab(),
-                  _buildBlockedDatesTab(),
-                  _buildHistoryTab(),
-                ],
-              ),
+@override
+Widget build(BuildContext context) {
+  if (_isLoading) return const Center(child: CircularProgressIndicator());
+
+  return SafeArea(
+    child: Padding(
+      padding: EdgeInsets.only(left: 4.w, right: 4.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTabBar(),
+          SizedBox(height: 0.5.h),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildWorkingHoursTab(),
+                _buildBlockedDatesTab(),
+                _buildHistoryTab(),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Configuración',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppTheme.lightTheme.colorScheme.onSurface,
           ),
-        ),
-        IconButton(
-          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-          icon: const Icon(Icons.logout, color: Colors.redAccent),
-        ),
-      ],
-    );
-  }
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildTabBar() {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 1.h),
+      margin: EdgeInsets.only(top: 0.5.h, bottom: 0.5.h),
       decoration: BoxDecoration(
         color: AppTheme.lightTheme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
@@ -275,7 +257,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
               ],
             ),
           ),
-          SizedBox(height: 1.h),
+          SizedBox(height: 0.5.h),
           Expanded(
             child: TabBarView(
               children: [
