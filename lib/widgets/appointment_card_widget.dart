@@ -81,13 +81,7 @@ class AppointmentCardWidget extends StatelessWidget {
       label: 'Cancelar',
       onTap: onCancel ?? () {},
     ),
-    _actionButton(
-      context,
-      color: const Color(0xFFD32F2F),
-      icon: Icons.delete,
-      label: 'Eliminar',
-      onTap: onDelete ?? () {},
-    ),
+    
   ],
 ),
         child: Card(
@@ -304,14 +298,7 @@ class AppointmentCardWidget extends StatelessWidget {
                   if (onCancel != null) onCancel!();
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Eliminar cita'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  if (onDelete != null) onDelete!();
-                },
-              ),
+              
             ],
           ),
         );

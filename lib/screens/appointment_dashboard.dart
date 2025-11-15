@@ -79,56 +79,55 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
         .where('status', isNotEqualTo: 'cancelado')
         .snapshots()
         .listen((snapshot) {
-          final appointments = snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return data;
-          }).toList();
+      final appointments = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
 
-          // Filtrar citas incompletas (protección)
-          final cleaned = appointments.where((a) {
-            final name = (a['clientName'] ?? '').toString().trim();
-            final date = (a['date'] ?? '').toString().trim();
-            final time = (a['timeSlot'] ?? a['time'] ?? '').toString().trim();
-            return name.isNotEmpty && date.isNotEmpty && time.isNotEmpty;
-          }).toList();
+      // Filtrar citas incompletas (protección)
+      final cleaned = appointments.where((a) {
+        final name = (a['clientName'] ?? '').toString().trim();
+        final date = (a['date'] ?? '').toString().trim();
+        final time = (a['timeSlot'] ?? a['time'] ?? '').toString().trim();
+        return name.isNotEmpty && date.isNotEmpty && time.isNotEmpty;
+      }).toList();
 
-          // Inicializa el panel de notificaciones con las citas no leídas
-          final unread = appointments
-              .where(
-                (a) =>
-                    (a['lastChangeSource'] == 'client') && // 👈 solo cliente
-                    (a['isRead'] == false ||
-                        a['isRead'] == 'false' ||
-                        a['isRead'] == null),
-              )
-              .toList();
-
-          // 🔍 Detectar nuevas citas pendientes no leídas
-          final newAppointments = appointments.where(
+      // Inicializa el panel de notificaciones con las citas no leídas
+      final unread = appointments
+          .where(
             (a) =>
-                !_knownAppointments.contains(a['id']) &&
-                (a['status'] == 'pendiente') &&
-                (a['lastChangeSource'] == 'client') && // 👈 SOLO cliente
+                (a['lastChangeSource'] == 'client') && // 👈 solo cliente
                 (a['isRead'] == false ||
                     a['isRead'] == 'false' ||
                     a['isRead'] == null),
-          );
+          )
+          .toList();
 
-          for (var newA in newAppointments) {
-            _showNewAppointmentNotification(newA);
-          }
+      // 🔍 Detectar nuevas citas pendientes no leídas
+      final newAppointments = appointments.where(
+        (a) =>
+            !_knownAppointments.contains(a['id']) &&
+            (a['status'] == 'pendiente') &&
+            (a['lastChangeSource'] == 'client') && // 👈 SOLO cliente
+            (a['isRead'] == false ||
+                a['isRead'] == 'false' ||
+                a['isRead'] == null),
+      );
 
-          _knownAppointments = appointments
-              .map((a) => a['id'] as String)
-              .toList();
+      for (var newA in newAppointments) {
+        _showNewAppointmentNotification(newA);
+      }
 
-          setState(() {
-            _appointments = cleaned;
-            _filteredAppointments = _applySearchFilter(cleaned, _searchQuery);
-            _notifications = List.from(unread);
-          });
-        });
+      _knownAppointments =
+          appointments.map((a) => a['id'] as String).toList();
+
+      setState(() {
+        _appointments = cleaned;
+        _filteredAppointments = _applySearchFilter(cleaned, _searchQuery);
+        _notifications = List.from(unread);
+      });
+    });
   }
 
   //  Mostrar notificación visual
@@ -184,9 +183,8 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
     final searchLower = query.toLowerCase();
     return list.where((appointment) {
       final client = (appointment['clientName'] ?? '').toString().toLowerCase();
-      final service = (appointment['serviceType'] ?? '')
-          .toString()
-          .toLowerCase();
+      final service =
+          (appointment['serviceType'] ?? '').toString().toLowerCase();
       return client.contains(searchLower) || service.contains(searchLower);
     }).toList();
   }
@@ -235,13 +233,10 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
           .collection('appointments_history')
           .doc(appointment['id'])
           .set({
-            ...appointment,
-            'movedToHistoryAt': DateTime.now().toIso8601String(),
-          });
-      await _firestore
-          .collection('appointments')
-          .doc(appointment['id'])
-          .delete();
+        ...appointment,
+        'movedToHistoryAt': DateTime.now().toIso8601String(),
+      });
+      await _firestore.collection('appointments').doc(appointment['id']).delete();
       debugPrint("📦 Cita movida al histórico: ${appointment['id']}");
     } catch (e) {
       debugPrint("❌ Error moviendo cita al histórico: $e");
@@ -473,8 +468,8 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                 onButtonPressed: _searchQuery.isNotEmpty
                                     ? _clearSearch
                                     : () => Fluttertoast.showToast(
-                                        msg: "Abrir formulario de cita",
-                                      ),
+                                          msg: "Abrir formulario de cita",
+                                        ),
                                 illustrationUrl:
                                     "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800",
                               ),
@@ -486,10 +481,9 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 itemCount: groupedAppointments.length,
                                 itemBuilder: (context, index) {
-                                  final date = groupedAppointments.keys
-                                      .elementAt(index);
-                                  final appointments =
-                                      groupedAppointments[date]!;
+                                  final date =
+                                      groupedAppointments.keys.elementAt(index);
+                                  final appointments = groupedAppointments[date]!;
                                   final first = appointments.first;
                                   // Determinar dayOfWeek: preferimos el campo existente, sino lo calculamos desde la fecha clave
                                   String dayOfWeek = first['dayOfWeek'] ?? '';
@@ -512,8 +506,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                   }
 
                                   return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       DateSectionWidget(
                                         date: date,
@@ -531,13 +524,7 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                                                 );
                                             await _moveToHistory(a);
                                           },
-                                          onDelete: () async {
-                                            await _appointmentService
-                                                .deleteAppointment(
-                                                  context,
-                                                  a['id'],
-                                                );
-                                          },
+                                          // 🔹 ELIMINADO: onDelete - solo se elimina desde el histórico
                                         ),
                                       ),
                                       SizedBox(height: 1.h),
@@ -550,10 +537,10 @@ class _AppointmentDashboardState extends State<AppointmentDashboard>
                   ],
                 ),
                 const CalendarManagementScreen(),
-
+                
                 // 🔹 CAMBIO: Pasar el stream cacheado
                 LinksManagementScreen(linksStream: _linksStream),
-
+                
                 const SettingsManagementScreen(),
               ],
             ),

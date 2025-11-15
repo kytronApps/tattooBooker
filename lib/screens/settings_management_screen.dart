@@ -5,7 +5,6 @@ import '../../core/app_export.dart';
 import '../widgets/working_hours_widget.dart';
 import '../widgets/blocked_dates_widget.dart';
 import '../widgets/custom_snackbar.dart';
-import '../widgets/settings_management_widget.dart';
 
 class SettingsManagementScreen extends StatefulWidget {
   const SettingsManagementScreen({super.key});
@@ -34,9 +33,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     _loadUserSettings();
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Cargar configuración del usuario (Only once)
-  // -------------------------------------------------------------
   Future<void> _loadUserSettings() async {
     try {
       final snapshot = await _firestore
@@ -76,7 +72,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         );
       });
 
-      // Asegurar días
       const orderedDays = [
         'Lunes',
         'Martes',
@@ -112,9 +107,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     }
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Guardar cambios automáticamente
-  // -------------------------------------------------------------
   Future<void> _saveSettingsToFirestore() async {
     if (_userId == null) return;
     try {
@@ -141,9 +133,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     }
   }
 
-  // -------------------------------------------------------------
-  // UI PRINCIPAL
-  // -------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
@@ -157,7 +146,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
             _buildHeader(),
             _buildTabBar(),
             SizedBox(height: 1.h),
-
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -174,9 +162,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Header
-  // -------------------------------------------------------------
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -196,9 +181,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Tabs principales
-  // -------------------------------------------------------------
   Widget _buildTabBar() {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 1.h),
@@ -220,8 +202,8 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),
         labelColor: AppTheme.lightTheme.colorScheme.onPrimary,
-        unselectedLabelColor: AppTheme.lightTheme.colorScheme.onSurface
-            .withOpacity(0.6),
+        unselectedLabelColor:
+            AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6),
         tabs: const [
           Tab(text: 'Horarios'),
           Tab(text: 'Bloqueados'),
@@ -231,9 +213,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Tab Horarios
-  // -------------------------------------------------------------
   Widget _buildWorkingHoursTab() {
     return SingleChildScrollView(
       child: WorkingHoursWidget(
@@ -256,9 +235,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Tab Fechas Bloqueadas
-  // -------------------------------------------------------------
   Widget _buildBlockedDatesTab() {
     return SingleChildScrollView(
       child: BlockedDatesWidget(
@@ -275,113 +251,173 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Tab HISTÓRICO — Citas + Links
-  // -------------------------------------------------------------
   Widget _buildHistoryTab() {
-  return DefaultTabController(
-    length: 2,
-    child: Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.lightTheme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.shadowLight,
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.lightTheme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.shadowLight,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const TabBar(
+              tabs: [
+                Tab(text: "Citas"),
+                Tab(text: "Links"),
+              ],
+            ),
           ),
-          child: const TabBar(
-            tabs: [
-              Tab(text: "Citas"),
-              Tab(text: "Links"),
-            ],
+          SizedBox(height: 1.h),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildAppointmentsHistory(),
+                _buildLinksHistory(),
+              ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
 
-        SizedBox(height: 1.h),
-
-        Expanded(
-          child: TabBarView(
-            children: [
-              _buildAppointmentsHistory(),
-              _buildLinksHistory(),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-  // -------------------------------------------------------------
-  // 🔹 HISTÓRICO — CITAS
-  // -------------------------------------------------------------
   Widget _buildAppointmentsHistory() {
-  return HistoryList(
-    firestore: _firestore,
-    collection: "appointments_history",
-    emptyMessage: "Sin citas en el histórico",
-    orderByField: "movedToHistoryAt",
-    buildCard: (data) {
-      return HistoryCard(
-        title: data["clientName"] ?? "Cliente",
-        subtitle: data["serviceType"] ?? "Servicio",
-        date: data["date"] ?? "",
-        time: data["timeSlot"] ?? "--",
-        onDelete: () async {
-          await _firestore
-              .collection("appointments_history")
-              .doc(data["id"])
-              .delete();
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection("appointments_history")
+          .orderBy("movedToHistoryAt", descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          CustomSnackBar.show(context,
-              message: "Cita eliminada del histórico");
-        },
-      );
-    },
-  );
-}
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _emptyHistory("Sin citas en el histórico");
+        }
 
-  // -------------------------------------------------------------
-  // 🔹 HISTÓRICO — LINKS REVOCADOS
-  // -------------------------------------------------------------
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+
+            return _historyCard(
+              title: data["clientName"] ?? "Cliente",
+              subtitle: data["serviceType"] ?? "Servicio",
+              date: data["date"] ?? "",
+              time: data["timeSlot"] ?? "--",
+              onDelete: () async {
+                final confirm = await _confirmDelete(
+                  title: 'Eliminar cita',
+                  content: '¿Eliminar esta cita del histórico?',
+                );
+                
+                if (confirm == true) {
+                  await _firestore
+                      .collection("appointments_history")
+                      .doc(doc.id)
+                      .delete();
+                  if (mounted) {
+                    CustomSnackBar.show(context,
+                        message: "Cita eliminada del histórico");
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildLinksHistory() {
-  return HistoryList(
-    firestore: _firestore,
-    collection: "booking_links_history",
-    emptyMessage: "Sin links revocados",
-    orderByField: "revokedAt",
-    buildCard: (data) {
-      final token = data["editToken"] ?? "—";
-      final linkUrl = "https://kytron-apps.web.app/book/$token";
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection("booking_links_history")
+          .orderBy("revokedAt", descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      return HistoryCard(
-        title: linkUrl,
-        subtitle: "Link revocado",
-        date: data["revokedAt"]?.toString().split("T").first ?? "",
-        time: "",
-        onDelete: () async {
-          await _firestore
-              .collection("booking_links_history")
-              .doc(data["id"])
-              .delete();
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _emptyHistory("Sin links revocados");
+        }
 
-          CustomSnackBar.show(context,
-              message: "Link eliminado del histórico");
-        },
-      );
-    },
-  );
-}
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final token = data["editToken"] ?? "—";
+            final linkUrl = "https://kytron-apps.web.app/book/$token";
 
-  // -------------------------------------------------------------
-  // 🔹 CARD ELEGANTE DEL HISTÓRICO
-  // -------------------------------------------------------------
+            return _historyCard(
+              title: linkUrl,
+              subtitle: "Link revocado",
+              date: data["revokedAt"]?.toString().split("T").first ?? "",
+              time: "",
+              onDelete: () async {
+                final confirm = await _confirmDelete(
+                  title: 'Eliminar link',
+                  content: '¿Eliminar este link del histórico?',
+                );
+
+                if (confirm == true) {
+                  await _firestore
+                      .collection("booking_links_history")
+                      .doc(doc.id)
+                      .delete();
+                  if (mounted) {
+                    CustomSnackBar.show(context,
+                        message: "Link eliminado del histórico");
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 🔹 Diálogo de confirmación reutilizable
+  Future<bool?> _confirmDelete({
+    required String title,
+    required String content,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _historyCard({
     required String title,
     required String subtitle,
@@ -400,7 +436,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -410,6 +445,7 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
                     style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -422,22 +458,45 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
                 ),
               ],
             ),
-
             SizedBox(height: 0.4.h),
-
             Text(subtitle, style: AppTheme.lightTheme.textTheme.bodySmall),
-
             SizedBox(height: 1.h),
-
-            Row(
+            
+            // 🔹 FIX: Usar Wrap o Row con Expanded para evitar overflow
+            Wrap(
+              spacing: 3.w,
+              runSpacing: 1.h,
               children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 4.w,
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 4.w,
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    SizedBox(width: 2.w),
+                    Flexible(
+                      child: Text(
+                        date,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 2.w),
-                Text(date),
+                if (time.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 4.w,
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      ),
+                      SizedBox(width: 2.w),
+                      Text(time),
+                    ],
+                  ),
               ],
             ),
           ],
@@ -446,9 +505,6 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
     );
   }
 
-  // -------------------------------------------------------------
-  // 🔹 Estado vacío elegante
-  // -------------------------------------------------------------
   Widget _emptyHistory(String message) {
     return Center(
       child: Column(
@@ -464,13 +520,5 @@ class _SettingsManagementScreenState extends State<SettingsManagementScreen>
         ],
       ),
     );
-  }
-
-  // -------------------------------------------------------------
-  // 🔹 Eliminar item del histórico
-  // -------------------------------------------------------------
-  Future<void> _deleteHistoryItem(String collection, String id) async {
-    await _firestore.collection(collection).doc(id).delete();
-    CustomSnackBar.show(context, message: "Elemento eliminado del histórico");
   }
 }
