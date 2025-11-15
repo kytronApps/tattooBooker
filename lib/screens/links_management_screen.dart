@@ -54,6 +54,7 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
               ),
             ],
           ),
+
           SizedBox(height: 2.h),
 
           // 🔹 Lista de links
@@ -105,16 +106,17 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                           children: [
                             // 🔹 URL + estado
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
                                   child: Text(
                                     linkUrl,
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style:
                                         AppTheme.lightTheme.textTheme.bodySmall,
                                   ),
                                 ),
+                                SizedBox(width: 2.w),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -126,21 +128,24 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                                         : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(
-                                    active ? 'Activo' : 'Revocado',
-                                    style: AppTheme
-                                        .lightTheme
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: active
-                                              ? Colors.green
-                                              : Colors.grey.shade600,
-                                        ),
+                                  child: FittedBox(
+                                    child: Text(
+                                      active ? 'Activo' : 'Revocado',
+                                      style: AppTheme
+                                          .lightTheme
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: active
+                                                ? Colors.green
+                                                : Colors.grey.shade600,
+                                          ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
+
                             SizedBox(height: 1.h),
 
                             // 🔹 Fecha de creación
@@ -152,18 +157,28 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
                                       AppTheme.lightTheme.textTheme.bodySmall,
                                 ),
                                 SizedBox(width: 2.w),
-                                Text(
-                                  createdAt.toString(),
-                                  style: AppTheme.lightTheme.textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: AppTheme
-                                            .lightTheme
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
+                                Expanded(
+                                  // ← AÑADE ESTO
+                                  child: Text(
+                                    createdAt.toString(),
+                                    maxLines: 1, // ← AÑADE ESTO
+                                    overflow:
+                                        TextOverflow.ellipsis, // ← AÑADE ESTO
+                                    style: AppTheme
+                                        .lightTheme
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme
+                                              .lightTheme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
                                 ),
                               ],
                             ),
+
                             SizedBox(height: 1.h),
 
                             // 🔹 Acciones
