@@ -36,34 +36,34 @@ class _MainLayoutState extends State<MainLayout> {
     // Implementar sincronización con calendario
   }
 
-  Future<void> _saveSettingsToFirestore() async {
-    try {
-      // Implementar guardado de configuración
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Configuración guardada correctamente',
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.lightTheme.colorScheme.onPrimary,
-            ),
-          ),
-          backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error al guardar la configuración: $e',
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.lightTheme.colorScheme.onError,
-            ),
-          ),
-          backgroundColor: AppTheme.lightTheme.colorScheme.error,
-        ),
-      );
-    }
-  }
+  // Future<void> _saveSettingsToFirestore() async {
+  //   try {
+  //     // Implementar guardado de configuración
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(
+  //           'Configuración guardada correctamente',
+  //           style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+  //             color: AppTheme.lightTheme.colorScheme.onPrimary,
+  //           ),
+  //         ),
+  //         backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(
+  //           'Error al guardar la configuración: $e',
+  //           style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+  //             color: AppTheme.lightTheme.colorScheme.onError,
+  //           ),
+  //         ),
+  //         backgroundColor: AppTheme.lightTheme.colorScheme.error,
+  //       ),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +104,12 @@ class _MainLayoutState extends State<MainLayout> {
           label: const Text("Sincronizar"),
           backgroundColor: AppTheme.lightTheme.colorScheme.primary,
         );
-      case 2: // Ajustes
-        return FloatingActionButton(
-          onPressed: _saveSettingsToFirestore,
-          backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-          child: const Icon(Icons.save, color: Colors.white),
-        );
+      // case 2: // Ajustes
+      //   return FloatingActionButton(
+      //     onPressed: _saveSettingsToFirestore,
+      //     backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+      //     child: const Icon(Icons.save, color: Colors.white),
+      //   );
       default:
         return const SizedBox.shrink();
     }

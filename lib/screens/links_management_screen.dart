@@ -8,11 +8,8 @@ import '../services/booking_links_service.dart';
 
 class LinksManagementScreen extends StatefulWidget {
   final Stream<QuerySnapshot<Map<String, dynamic>>>? linksStream;
-  
-  const LinksManagementScreen({
-    super.key,
-    this.linksStream,
-  });
+
+  const LinksManagementScreen({super.key, this.linksStream});
 
   @override
   State<LinksManagementScreen> createState() => _LinksManagementScreenState();
@@ -30,264 +27,256 @@ class _LinksManagementScreenState extends State<LinksManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(4.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Generador de Links',
-                  style: AppTheme.lightTheme.textTheme.headlineSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: 3.w),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 46.w),
-                child: ElevatedButton.icon(
-                  onPressed: _createNewLink,
-                  icon: const Icon(Icons.add_link, size: 18),
-                  label: const Text('Generar link'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 3.w,
-                      vertical: 1.h,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔹 FILA DE BOTÓN – CORREGIDA
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 46.w),
+                  child: ElevatedButton.icon(
+                    onPressed: _createNewLink,
+                    icon: const Icon(Icons.add_link, size: 18),
+                    label: const Text('Generar link'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 3.w,
+                        vertical: 1.h,
+                      ),
+                      textStyle: AppTheme.lightTheme.textTheme.labelLarge,
                     ),
-                    textStyle: AppTheme.lightTheme.textTheme.labelLarge,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          SizedBox(height: 2.h),
+            SizedBox(height: 2.h),
 
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _stream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            Expanded(
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _stream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No hay links generados aún',
-                      style: AppTheme.lightTheme.textTheme.bodyLarge,
-                    ),
-                  );
-                }
-
-                final docs = snapshot.data!.docs;
-
-                return ListView.separated(
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 1.h),
-                  itemBuilder: (context, index) {
-                    final doc = docs[index];
-                    final data = doc.data();
-                    final id = doc.id;
-                    final active = data['active'] is bool
-                        ? data['active'] == true
-                        : data['active'].toString() == 'true';
-                    final createdAt = data['createdAt'] ?? '';
-                    final uses = data['uses'] ?? 0;
-                    final token = data['editToken'] ?? id;
-                    final linkUrl = 'https://kytron-apps.web.app/book/$token';
-
-                    return Card(
-                      elevation: AppTheme.elevationLow,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppTheme.borderRadiusMedium,
-                        ),
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No hay links generados aún',
+                        style: AppTheme.lightTheme.textTheme.bodyLarge,
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.all(3.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // URL + estado
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    linkUrl,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style:
-                                        AppTheme.lightTheme.textTheme.bodySmall,
-                                  ),
-                                ),
-                                SizedBox(width: 2.w),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: active
-                                        ? Colors.green.shade50
-                                        : Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: FittedBox(
+                    );
+                  }
+
+                  final docs = snapshot.data!.docs;
+
+                  return ListView.separated(
+                    itemCount: docs.length,
+                    separatorBuilder: (_, __) => SizedBox(height: 1.h),
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data();
+                      final id = doc.id;
+                      final active = data['active'] is bool
+                          ? data['active'] == true
+                          : data['active'].toString() == 'true';
+                      final createdAt = data['createdAt'] ?? '';
+                      final uses = data['uses'] ?? 0;
+                      final token = data['editToken'] ?? id;
+                      final linkUrl = 'https://kytron-apps.web.app/book/$token';
+
+                      return Card(
+                        elevation: AppTheme.elevationLow,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.borderRadiusMedium,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(3.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
                                     child: Text(
-                                      active ? 'Activo' : 'Revocado',
+                                      linkUrl,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: AppTheme
                                           .lightTheme
                                           .textTheme
-                                          .labelSmall
+                                          .bodySmall,
+                                    ),
+                                  ),
+                                  SizedBox(width: 2.w),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: active
+                                          ? Colors.green.shade50
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: FittedBox(
+                                      child: Text(
+                                        active ? 'Activo' : 'Revocado',
+                                        style: AppTheme
+                                            .lightTheme
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: active
+                                                  ? Colors.green
+                                                  : Colors.grey.shade600,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 1.h),
+
+                              Row(
+                                children: [
+                                  Text(
+                                    'Generado:',
+                                    style:
+                                        AppTheme.lightTheme.textTheme.bodySmall,
+                                  ),
+                                  SizedBox(width: 2.w),
+                                  Expanded(
+                                    child: Text(
+                                      createdAt.toString(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTheme
+                                          .lightTheme
+                                          .textTheme
+                                          .bodySmall
                                           ?.copyWith(
-                                            color: active
-                                                ? Colors.green
-                                                : Colors.grey.shade600,
+                                            color: AppTheme
+                                                .lightTheme
+                                                .colorScheme
+                                                .onSurfaceVariant,
                                           ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
 
-                            SizedBox(height: 1.h),
+                              SizedBox(height: 1.h),
 
-                            // Fecha de creación
-                            Row(
-                              children: [
-                                Text(
-                                  'Generado:',
-                                  style:
-                                      AppTheme.lightTheme.textTheme.bodySmall,
-                                ),
-                                SizedBox(width: 2.w),
-                                Expanded(
-                                  child: Text(
-                                    createdAt.toString(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Usos: $uses',
                                     style: AppTheme
                                         .lightTheme
                                         .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: AppTheme
-                                              .lightTheme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
+                                        .labelSmall,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  SizedBox(width: 3.w),
 
-                            SizedBox(height: 1.h),
-
-                            // Acciones - SIN BOTÓN ELIMINAR
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Usos: $uses',
-                                  style:
-                                      AppTheme.lightTheme.textTheme.labelSmall,
-                                ),
-                                SizedBox(width: 3.w),
-
-                                // Copiar
-                                IconButton(
-                                  tooltip: 'Copiar link',
-                                  onPressed: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: linkUrl),
-                                    );
-                                    if (mounted) {
-                                      CustomSnackBar.show(
-                                        context,
-                                        message: 'Link copiado al portapapeles',
+                                  IconButton(
+                                    tooltip: 'Copiar link',
+                                    onPressed: () async {
+                                      await Clipboard.setData(
+                                        ClipboardData(text: linkUrl),
                                       );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.copy_outlined),
-                                ),
+                                      if (mounted) {
+                                        CustomSnackBar.show(
+                                          context,
+                                          message:
+                                              'Link copiado al portapapeles',
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.copy_outlined),
+                                  ),
 
-                                // Revocar / activar
-                                IconButton(
-                                  tooltip: active ? 'Revocar' : 'Activar',
-                                  onPressed: () async {
-                                    if (active) {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: const Text('Revocar link'),
-                                          content: const Text(
-                                            '¿Deseas revocar este link? Pasará al histórico.',
+                                  IconButton(
+                                    tooltip: active ? 'Revocar' : 'Activar',
+                                    onPressed: () async {
+                                      if (active) {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text('Revocar link'),
+                                            content: const Text(
+                                              '¿Deseas revocar este link? Pasará al histórico.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: const Text('Revocar'),
+                                              ),
+                                            ],
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: const Text('Revocar'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
+                                        );
 
-                                      if (confirm == true) {
-                                        await _service.moveLinkToHistory(id);
-                                        if (mounted) {
-                                          Future.delayed(Duration.zero, () {
+                                        if (confirm == true) {
+                                          await _service.moveLinkToHistory(id);
+                                          if (mounted) {
                                             CustomSnackBar.show(
                                               context,
                                               message:
                                                   'Link movido al histórico',
                                             );
-                                          });
+                                          }
                                         }
-                                      }
-                                    } else {
-                                      await _service.toggleActive(id, true);
-                                      if (mounted) {
-                                        Future.delayed(Duration.zero, () {
+                                      } else {
+                                        await _service.toggleActive(id, true);
+                                        if (mounted) {
                                           CustomSnackBar.show(
                                             context,
                                             message: 'Link reactivado',
                                           );
-                                        });
+                                        }
                                       }
-                                    }
-                                  },
-                                  icon: Icon(
-                                    active
-                                        ? Icons.block_outlined
-                                        : Icons.check_circle_outline,
+                                    },
+                                    icon: Icon(
+                                      active
+                                          ? Icons.block_outlined
+                                          : Icons.check_circle_outline,
+                                    ),
+                                    color: active
+                                        ? Colors.orange
+                                        : Colors.green,
                                   ),
-                                  color: active ? Colors.orange : Colors.green,
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
