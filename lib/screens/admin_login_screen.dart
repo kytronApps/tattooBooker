@@ -80,7 +80,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (user != null) {
         HapticFeedback.lightImpact();
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/appointment-dashboard');
+          Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
         }
       } else {
         _showError('Credenciales inválidas. Verifique su email y contraseña.');

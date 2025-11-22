@@ -7,28 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:140694153397:android:5cc309dfa2656672aa76fc",
+        "mobilesdk_app_id": "1:140694153397:android:e170771d2f269d64aa76fc",
         "android_client_info": {
-          "package_name": "com.example.tattoo_booker"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCixVGTelc264zSmyDy0byeRMC4n27zyJw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:140694153397:android:2322f7ce4075e202aa76fc",
-        "android_client_info": {
-          "package_name": "com.tattoobooker.app"
+          "package_name": "com.emily.tattoo_booker"
         }
       },
       "oauth_client": [],

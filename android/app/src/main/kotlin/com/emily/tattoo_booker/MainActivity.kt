@@ -1,4 +1,4 @@
-package com.example.tattoo_booker
+package com.emily.tattoo_booker
 
 import io.flutter.embedding.android.FlutterActivity
 

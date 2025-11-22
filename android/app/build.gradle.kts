@@ -1,42 +1,59 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.gms.google-services") 
+    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
 android {
-    namespace = "com.example.tattoo_booker"
-    compileSdk = 34
+    namespace = "com.emily.tattoo_booker"
+    compileSdk = flutter.compileSdkVersion
+
+    // 🔥 FIX REAL: usar NDK 27, no el que trae Flutter por defecto
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
 
     defaultConfig {
-        applicationId = "com.tattoobooker.app"
+        applicationId = "com.emily.tattoo_booker"
         minSdk = 23
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystoreFile = rootProject.file("key.properties")
+            val properties = Properties()
+            if (keystoreFile.exists()) {
+                properties.load(FileInputStream(keystoreFile))
+            }
+            
+            storeFile = file(properties["storeFile"] as String)
+            storePassword = properties["storePassword"] as String
+            keyAlias = properties["keyAlias"] as String
+            keyPassword = properties["keyPassword"] as String
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
 
-dependencies {
-    // Firebase BoM → asegura versiones compatibles
-    implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
-
-    // Firebase SDKs que usarás
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-functions")
-
-    // Dependencias Flutter
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
+flutter {
+    source = "../.."
 }
